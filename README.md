@@ -1,5 +1,10 @@
 # JavaFxDevTools
 
+![Java](https://img.shields.io/badge/Java-17-orange?style=flat-square&logo=java)
+![JavaFX](https://img.shields.io/badge/JavaFX-17.0.6-blue?style=flat-square)
+![Maven](https://img.shields.io/badge/Maven-3.6+-green?style=flat-square&logo=apache-maven)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)
+
 JavaFxDevTools 是一个基于 JavaFX 技术开发的多功能开发工具集，包含插件化的文本编辑器（DevTools）和可定制的代码编辑器（JavaFxEditor）。
 
 ## 项目简介
