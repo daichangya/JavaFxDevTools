@@ -69,132 +69,142 @@ jobs:
         mkdir -p dist
         
         # Create install.sh for Linux/macOS
-        cat > dist/install-$VERSION.sh << EOF
-#!/bin/bash
-set -e
-
-VERSION="$VERSION"
-REPO_URL="https://github.com/daichangya/JavaFxDevTools"
-INSTALL_DIR="\${HOME}/.local/share/javafxdevtools"
-BIN_DIR="\${HOME}/.local/bin"
-
-echo "JavaFxDevTools Installation Script"
-echo "=================================="
-echo ""
-
-# Check Java version
-if ! command -v java &> /dev/null; then
-    echo "Error: Java is not installed. Please install JDK 17 or higher."
-    exit 1
-fi
-
-JAVA_VERSION=\$(java -version 2>&1 | head -n 1 | cut -d'"' -f2 | sed '/^1\\./s///' | cut -d'.' -f1)
-if [ "\$JAVA_VERSION" -lt 17 ]; then
-    echo "Error: Java 17 or higher is required. Found Java \$JAVA_VERSION"
-    exit 1
-fi
-
-echo "Java version check passed: \$(java -version 2>&1 | head -n 1)"
-
-# Create installation directory
-mkdir -p "\$INSTALL_DIR"
-mkdir -p "\$BIN_DIR"
-
-# Download JAR files
-echo ""
-echo "Downloading DevTools..."
-curl -L -o "\$INSTALL_DIR/DevTools-\$VERSION.jar" "\$REPO_URL/releases/download/v\$VERSION/DevTools-\$VERSION.jar"
-
-echo "Downloading JavaFxEditor..."
-curl -L -o "\$INSTALL_DIR/JavaFxEditor-\$VERSION.jar" "\$REPO_URL/releases/download/v\$VERSION/JavaFxEditor-\$VERSION.jar"
-
-# Create launcher scripts
-echo ""
-echo "Creating launcher scripts..."
-
-cat > "\$BIN_DIR/devtools" << LAUNCHER_EOF
-#!/bin/bash
-java -jar "\$HOME/.local/share/javafxdevtools/DevTools-$VERSION.jar" "\$@"
-LAUNCHER_EOF
-
-cat > "\$BIN_DIR/javafxeditor" << LAUNCHER_EOF
-#!/bin/bash
-java -jar "\$HOME/.local/share/javafxdevtools/JavaFxEditor-$VERSION.jar" "\$@"
-LAUNCHER_EOF
-
-chmod +x "\$BIN_DIR/devtools"
-chmod +x "\$BIN_DIR/javafxeditor"
-
-echo ""
-echo "Installation completed!"
-echo ""
-echo "Applications installed to: \$INSTALL_DIR"
-echo "Launcher scripts created in: \$BIN_DIR"
-echo ""
-echo "To use the applications, ensure \$BIN_DIR is in your PATH:"
-echo "  export PATH=\"\\\$PATH:\$BIN_DIR\""
-echo ""
-echo "Then you can run:"
-echo "  devtools"
-echo "  javafxeditor"
-EOF
+        cat > dist/install-$VERSION.sh <<'SCRIPT_EOF'
+        #!/bin/bash
+        set -e
+        
+        VERSION="$1"
+        if [ -z "$VERSION" ]; then
+          VERSION="latest"
+        fi
+        
+        REPO_URL="https://github.com/daichangya/JavaFxDevTools"
+        INSTALL_DIR="${HOME}/.local/share/javafxdevtools"
+        BIN_DIR="${HOME}/.local/bin"
+        
+        echo "JavaFxDevTools Installation Script"
+        echo "=================================="
+        echo ""
+        
+        # Check Java version
+        if ! command -v java &> /dev/null; then
+            echo "Error: Java is not installed. Please install JDK 17 or higher."
+            exit 1
+        fi
+        
+        JAVA_VERSION=$(java -version 2>&1 | head -n 1 | cut -d'"' -f2 | sed '/^1\./s///' | cut -d'.' -f1)
+        if [ "$JAVA_VERSION" -lt 17 ]; then
+            echo "Error: Java 17 or higher is required. Found Java $JAVA_VERSION"
+            exit 1
+        fi
+        
+        echo "Java version check passed: $(java -version 2>&1 | head -n 1)"
+        
+        # Create installation directory
+        mkdir -p "$INSTALL_DIR"
+        mkdir -p "$BIN_DIR"
+        
+        # Download JAR files
+        echo ""
+        echo "Downloading DevTools..."
+        curl -L -o "$INSTALL_DIR/DevTools-$VERSION.jar" "$REPO_URL/releases/download/v$VERSION/DevTools-$VERSION.jar"
+        
+        echo "Downloading JavaFxEditor..."
+        curl -L -o "$INSTALL_DIR/JavaFxEditor-$VERSION.jar" "$REPO_URL/releases/download/v$VERSION/JavaFxEditor-$VERSION.jar"
+        
+        # Create launcher scripts
+        echo ""
+        echo "Creating launcher scripts..."
+        
+        cat > "$BIN_DIR/devtools" << 'LAUNCHER_EOF'
+        #!/bin/bash
+        VERSION="$VERSION"
+        java -jar "$HOME/.local/share/javafxdevtools/DevTools-$VERSION.jar" "$@"
+        LAUNCHER_EOF
+        
+        cat > "$BIN_DIR/javafxeditor" << 'LAUNCHER_EOF'
+        #!/bin/bash
+        VERSION="$VERSION"
+        java -jar "$HOME/.local/share/javafxdevtools/JavaFxEditor-$VERSION.jar" "$@"
+        LAUNCHER_EOF
+        
+        chmod +x "$BIN_DIR/devtools"
+        chmod +x "$BIN_DIR/javafxeditor"
+        
+        echo ""
+        echo "Installation completed!"
+        echo ""
+        echo "Applications installed to: $INSTALL_DIR"
+        echo "Launcher scripts created in: $BIN_DIR"
+        echo ""
+        echo "To use the applications, ensure $BIN_DIR is in your PATH:"
+        echo "  export PATH=\"\$PATH:$BIN_DIR\""
+        echo ""
+        echo "Then you can run:"
+        echo "  devtools"
+        echo "  javafxeditor"
+        SCRIPT_EOF
 
         # Create install.bat for Windows
-        cat > dist/install-$VERSION.bat << EOF
-@echo off
-setlocal enabledelayedexpansion
-
-set VERSION=$VERSION
-set REPO_URL=https://github.com/daichangya/JavaFxDevTools
-set INSTALL_DIR=%%USERPROFILE%%\\JavaFxDevTools
-set BIN_DIR=%%USERPROFILE%%\\JavaFxDevTools\\bin
-
-echo JavaFxDevTools Installation Script
-echo ==================================
-echo.
-
-REM Check Java version
-java -version >nul 2>&1
-if errorlevel 1 (
-    echo Error: Java is not installed. Please install JDK 17 or higher.
-    pause
-    exit /b 1
-)
-
-echo Java version check passed.
-echo.
-
-REM Create installation directory
-if not exist "%%INSTALL_DIR%%" mkdir "%%INSTALL_DIR%%"
-if not exist "%%BIN_DIR%%" mkdir "%%BIN_DIR%%"
-
-REM Download JAR files
-echo Downloading DevTools...
-curl -L -o "%%INSTALL_DIR%%\\DevTools-%%VERSION%%.jar" "%%REPO_URL%%/releases/download/v%%VERSION%%/DevTools-%%VERSION%%.jar"
-
-echo Downloading JavaFxEditor...
-curl -L -o "%%INSTALL_DIR%%\\JavaFxEditor-%%VERSION%%.jar" "%%REPO_URL%%/releases/download/v%%VERSION%%/JavaFxEditor-%%VERSION%%.jar"
-
-REM Create launcher scripts
-echo.
-echo Creating launcher scripts...
-
-echo @echo off > "%%BIN_DIR%%\\devtools.bat"
-echo java -jar "%%INSTALL_DIR%%\\DevTools-%%VERSION%%.jar" %%%%* >> "%%BIN_DIR%%\\devtools.bat"
-
-echo @echo off > "%%BIN_DIR%%\\javafxeditor.bat"
-echo java -jar "%%INSTALL_DIR%%\\JavaFxEditor-%%VERSION%%.jar" %%%%* >> "%%BIN_DIR%%\\javafxeditor.bat"
-
-echo.
-echo Installation completed!
-echo.
-echo Applications installed to: %%INSTALL_DIR%%
-echo Launcher scripts created in: %%BIN_DIR%%
-echo.
-echo Add %%BIN_DIR%% to your PATH to use the applications.
-echo.
-pause
-EOF
+        cat > dist/install-$VERSION.bat <<'BAT_EOF'
+        @echo off
+        setlocal enabledelayedexpansion
+        
+        set "VERSION=%~1"
+        if "%VERSION%"=="" set "VERSION=latest"
+        
+        set "REPO_URL=https://github.com/daichangya/JavaFxDevTools"
+        set "INSTALL_DIR=%USERPROFILE%\JavaFxDevTools"
+        set "BIN_DIR=%USERPROFILE%\JavaFxDevTools\bin"
+        
+        echo JavaFxDevTools Installation Script
+        echo ==================================
+        echo.
+        
+        REM Check Java version
+        java -version >nul 2>&1
+        if errorlevel 1 (
+            echo Error: Java is not installed. Please install JDK 17 or higher.
+            pause
+            exit /b 1
+        )
+        
+        echo Java version check passed.
+        echo.
+        
+        REM Create installation directory
+        if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
+        if not exist "%BIN_DIR%" mkdir "%BIN_DIR%"
+        
+        REM Download JAR files
+        echo Downloading DevTools...
+        curl -L -o "%INSTALL_DIR%\DevTools-%VERSION%.jar" "%REPO_URL%/releases/download/v%VERSION%/DevTools-%VERSION%.jar"
+        
+        echo Downloading JavaFxEditor...
+        curl -L -o "%INSTALL_DIR%\JavaFxEditor-%VERSION%.jar" "%REPO_URL%/releases/download/v%VERSION%/JavaFxEditor-%VERSION%.jar"
+        
+        REM Create launcher scripts
+        echo.
+        echo Creating launcher scripts...
+        
+        echo @echo off > "%BIN_DIR%\devtools.bat"
+        echo set "VERSION=%VERSION%" >> "%BIN_DIR%\devtools.bat"
+        echo java -jar "%INSTALL_DIR%\DevTools-%%VERSION%%.jar" %%* >> "%BIN_DIR%\devtools.bat"
+        
+        echo @echo off > "%BIN_DIR%\javafxeditor.bat"
+        echo set "VERSION=%VERSION%" >> "%BIN_DIR%\javafxeditor.bat"
+        echo java -jar "%INSTALL_DIR%\JavaFxEditor-%%VERSION%%.jar" %%* >> "%BIN_DIR%\javafxeditor.bat"
+        
+        echo.
+        echo Installation completed!
+        echo.
+        echo Applications installed to: %INSTALL_DIR%
+        echo Launcher scripts created in: %BIN_DIR%
+        echo.
+        echo Add %BIN_DIR% to your PATH to use the applications.
+        echo.
+        pause
+        BAT_EOF
 
         chmod +x dist/install-$VERSION.sh
         echo "Created install scripts"
