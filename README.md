@@ -57,14 +57,17 @@ JavaFxDevTools/
 
 ### 环境要求
 
-- JDK 17 或更高版本
-- Maven 3.6 或更高版本
+- **JDK**: 17 或更高版本
+- **Maven**: 3.6 或更高版本
+- **操作系统**: Windows、macOS 或 Linux
 
-### 构建项目
+### 安装
+
+#### 从源码构建
 
 ```bash
 # 克隆项目
-git clone <repository-url>
+git clone https://github.com/daichangya/JavaFxDevTools.git
 cd JavaFxDevTools
 
 # 编译所有模块
@@ -74,25 +77,57 @@ mvn clean compile
 mvn clean package
 ```
 
-### 运行 DevTools
+#### 下载预编译版本
 
+访问 [Releases](https://github.com/daichangya/JavaFxDevTools/releases) 页面下载最新版本。
+
+### 构建项目
+
+```bash
+# 编译所有模块
+mvn clean compile
+
+# 运行测试
+mvn test
+
+# 打包所有模块
+mvn clean package
+```
+
+### 运行应用
+
+#### 方式一：使用 Maven 插件运行
+
+**运行 DevTools**:
 ```bash
 cd DevTools
 mvn javafx:run
 ```
 
-或者直接运行打包后的 JAR 文件：
-
-```bash
-java -jar DevTools/target/DevTools-1.0.0-SNAPSHOT-runnable.jar
-```
-
-### 运行 JavaFxEditor
-
+**运行 JavaFxEditor**:
 ```bash
 cd JavaFxEditor
 mvn javafx:run
 ```
+
+#### 方式二：运行打包后的 JAR
+
+**DevTools**:
+```bash
+java -jar DevTools/target/DevTools-1.0.0-SNAPSHOT-runnable.jar
+```
+
+**JavaFxEditor**:
+```bash
+java -jar JavaFxEditor/target/JavaFxEditor-1.0.0-SNAPSHOT.jar
+```
+
+#### 方式三：在 IDE 中运行
+
+1. 导入项目到 IntelliJ IDEA 或 Eclipse
+2. 运行主类：
+   - DevTools: `com.daicy.devtools.TextEditor`
+   - JavaFxEditor: `com.daicy.javafxeditor.TestEditor`
 
 ## 功能概览
 
@@ -114,22 +149,37 @@ mvn javafx:run
 
 ## 文档
 
-- [架构设计文档](ARCHITECTURE.md) - 系统架构、模块关系、设计模式
-- [开发指南](DEVELOPMENT.md) - 开发环境搭建、构建说明、开发规范
-- [用户手册](USER_GUIDE.md) - 使用说明、功能介绍、操作指南
-- [API 文档](API.md) - 核心 API 接口说明
-- [模块说明](MODULES.md) - 各模块详细说明
-- [插件开发指南](PLUGIN_DEVELOPMENT.md) - 如何开发自定义插件
+完整的项目文档可以帮助你快速上手：
+
+- 📐 [架构设计文档](ARCHITECTURE.md) - 系统架构、模块关系、设计模式
+- 🛠️ [开发指南](DEVELOPMENT.md) - 开发环境搭建、构建说明、开发规范
+- 📖 [用户手册](USER_GUIDE.md) - 使用说明、功能介绍、操作指南
+- 📚 [API 文档](API.md) - 核心 API 接口说明
+- 📦 [模块说明](MODULES.md) - 各模块详细说明
+- 🔌 [插件开发指南](PLUGIN_DEVELOPMENT.md) - 如何开发自定义插件
+- 📝 [更新日志](CHANGELOG.md) - 版本变更记录
+- 🔒 [安全策略](SECURITY.md) - 安全漏洞报告流程
 
 ## 贡献指南
 
-欢迎贡献代码！请遵循以下步骤：
+我们欢迎各种形式的贡献！请查看 [贡献指南](CONTRIBUTING.md) 了解详细信息。
 
-1. Fork 本项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+### 快速贡献步骤
+
+1. ⭐ Fork 本项目
+2. 🌿 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 💻 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 📤 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 🔄 开启 Pull Request
+
+### 贡献类型
+
+- 🐛 报告 Bug
+- 💡 提出新功能建议
+- 📝 改进文档
+- 🔌 开发新插件
+- 🎨 优化 UI/UX
+- ⚡ 性能优化
 
 ## 许可证
 
@@ -139,9 +189,31 @@ mvn javafx:run
 
 @author daicy
 
+## 项目状态
+
+![GitHub stars](https://img.shields.io/github/stars/daichangya/JavaFxDevTools?style=social)
+![GitHub forks](https://img.shields.io/github/forks/daichangya/JavaFxDevTools?style=social)
+![GitHub issues](https://img.shields.io/github/issues/daichangya/JavaFxDevTools)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/daichangya/JavaFxDevTools)
+
 ## 相关链接
 
-- [JavaFX 官方文档](https://openjfx.io/)
-- [RichTextFX 项目](https://github.com/FXMisc/RichTextFX)
-- [项目主页](https://zthinker.com)
+- 🌐 [项目仓库](https://github.com/daichangya/JavaFxDevTools)
+- 📦 [Releases](https://github.com/daichangya/JavaFxDevTools/releases)
+- 🐛 [问题反馈](https://github.com/daichangya/JavaFxDevTools/issues)
+- 📖 [JavaFX 官方文档](https://openjfx.io/)
+- 📚 [RichTextFX 项目](https://github.com/FXMisc/RichTextFX)
+- 🏠 [项目主页](https://zthinker.com)
+
+## 致谢
+
+感谢所有为这个项目做出贡献的开发者！
+
+## 许可证
+
+本项目采用 [MIT 许可证](LICENSE)。
+
+---
+
+**⭐ 如果这个项目对你有帮助，请给个 Star！**
 
