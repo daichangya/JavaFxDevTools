@@ -82,10 +82,33 @@ mvn clean package
 访问 [Releases](https://github.com/daichangya/JavaFxDevTools/releases) 页面下载最新版本。
 
 **可执行文件**:
-- `DevTools-1.0.0-SNAPSHOT-runnable.jar` - DevTools 可执行 JAR（包含所有依赖）
-- `JavaFxEditor-1.0.0-SNAPSHOT-runnable.jar` - JavaFxEditor 可执行 JAR（包含所有依赖）
+- `DevTools-{version}.jar` - DevTools 可执行 JAR（包含所有依赖）
+- `JavaFxEditor-{version}.jar` - JavaFxEditor 可执行 JAR（包含所有依赖）
+- `*.sha256` - 校验和文件（用于验证文件完整性）
+- `install-{version}.sh` - Linux/macOS 安装脚本
+- `install-{version}.bat` - Windows 安装脚本
 
 **运行要求**: 需要 JDK 17 或更高版本
+
+**快速安装**:
+
+**Linux/macOS**:
+```bash
+curl -L https://github.com/daichangya/JavaFxDevTools/releases/latest/download/install-$(curl -s https://api.github.com/repos/daichangya/JavaFxDevTools/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/v//').sh | bash
+```
+
+**Windows**:
+1. 下载 `install-{version}.bat`
+2. 双击运行安装脚本
+
+**手动运行**:
+```bash
+# 下载 JAR 文件后
+java -jar DevTools-{version}.jar
+java -jar JavaFxEditor-{version}.jar
+```
+
+详细安装说明请参考 [安装指南](INSTALL.md)。
 
 ### 构建项目
 
@@ -164,6 +187,7 @@ java -jar JavaFxEditor/target/JavaFxEditor-1.0.0-SNAPSHOT.jar
 - 📦 [模块说明](MODULES.md) - 各模块详细说明
 - 🔌 [插件开发指南](PLUGIN_DEVELOPMENT.md) - 如何开发自定义插件
 - 📦 [打包指南](PACKAGING.md) - 如何打包可执行程序
+- 📥 [安装指南](INSTALL.md) - 详细安装说明和常见问题
 - 📝 [更新日志](CHANGELOG.md) - 版本变更记录
 - 🔒 [安全策略](SECURITY.md) - 安全漏洞报告流程
 

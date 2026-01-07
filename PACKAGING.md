@@ -195,7 +195,32 @@ A: 建议流程：
 
 ## 发布到 GitHub Releases
 
-### 准备发布文件
+### 自动发布（推荐）
+
+项目已配置 GitHub Actions workflow，在创建 Release 时会自动：
+
+1. **自动构建**: 构建所有模块并生成可执行 JAR
+2. **自动重命名**: 将 SNAPSHOT 版本号替换为 Release 版本号
+3. **生成校验和**: 自动生成 SHA256 校验和文件
+4. **创建安装脚本**: 自动生成安装脚本
+5. **自动上传**: 将所有文件上传到 Release Assets
+
+**使用方法**:
+1. 在 GitHub 上创建新的 Release（带版本标签，如 `v1.0.0`）
+2. 发布 Release
+3. GitHub Actions 会自动运行并上传所有文件
+
+**上传的文件包括**:
+- `DevTools-{version}.jar` - DevTools 可执行 JAR
+- `DevTools-{version}.jar.sha256` - 校验和文件
+- `JavaFxEditor-{version}.jar` - JavaFxEditor 可执行 JAR
+- `JavaFxEditor-{version}.jar.sha256` - 校验和文件
+- `install-{version}.sh` - Linux/macOS 安装脚本
+- `install-{version}.bat` - Windows 安装脚本
+
+### 手动发布
+
+如果需要手动上传文件：
 
 1. **构建所有模块**:
 ```bash
@@ -205,12 +230,39 @@ mvn clean package -DskipTests
 2. **收集打包文件**:
 - `DevTools/target/DevTools-1.0.0-SNAPSHOT-runnable.jar`
 - `JavaFxEditor/target/JavaFxEditor-1.0.0-SNAPSHOT-runnable.jar`
-- 可选：原生应用文件
 
-3. **上传到 GitHub Releases**:
+3. **生成校验和**:
+```bash
+# Linux/macOS
+sha256sum DevTools/target/DevTools-1.0.0-SNAPSHOT-runnable.jar > DevTools-1.0.0.jar.sha256
+sha256sum JavaFxEditor/target/JavaFxEditor-1.0.0-SNAPSHOT-runnable.jar > JavaFxEditor-1.0.0.jar.sha256
+
+# Windows (PowerShell)
+Get-FileHash -Algorithm SHA256 DevTools\target\DevTools-1.0.0-SNAPSHOT-runnable.jar | Out-File DevTools-1.0.0.jar.sha256
+Get-FileHash -Algorithm SHA256 JavaFxEditor\target\JavaFxEditor-1.0.0-SNAPSHOT-runnable.jar | Out-File JavaFxEditor-1.0.0.jar.sha256
+```
+
+4. **上传到 GitHub Releases**:
    - 访问 Releases 页面
-   - 编辑 Release
+   - 编辑或创建 Release
    - 上传文件到 Assets
+
+### 验证下载的文件
+
+下载文件后，可以验证校验和：
+
+**Linux/macOS**:
+```bash
+sha256sum -c DevTools-1.0.0.jar.sha256
+sha256sum -c JavaFxEditor-1.0.0.jar.sha256
+```
+
+**Windows (PowerShell)**:
+```powershell
+$expected = Get-Content DevTools-1.0.0.jar.sha256
+$actual = (Get-FileHash -Algorithm SHA256 DevTools-1.0.0.jar).Hash
+if ($expected -eq $actual) { Write-Host "Checksum verified" }
+```
 
 ## 最佳实践
 
@@ -219,16 +271,57 @@ mvn clean package -DskipTests
 3. **文档**: 在 Release 说明中提供下载和使用说明
 4. **多平台**: 为不同平台提供相应的打包文件
 
-## 自动化打包
+## 多平台原生应用打包
 
-可以使用 GitHub Actions 自动打包：
+### 使用 jpackage（需要 JDK 14+）
 
-```yaml
-# .github/workflows/build.yml
-- name: Build and Package
-  run: |
-    mvn clean package -DskipTests
-    # 打包文件会自动生成
+jpackage 可以创建平台特定的安装包，包含 JRE，用户无需安装 Java。
+
+#### 在 GitHub Actions 中自动构建
+
+Release workflow 支持多平台构建（可选）。要启用多平台构建，需要：
+
+1. 在 workflow 中添加矩阵策略
+2. 为每个平台配置 jpackage 命令
+3. 上传平台特定的安装包
+
+#### 本地构建多平台应用
+
+**macOS**:
+```bash
+cd DevTools
+mvn clean package -DskipTests
+jpackage --input target \
+  --name DevTools \
+  --main-jar DevTools-1.0.0-SNAPSHOT-runnable.jar \
+  --main-class com.daicy.devtools.TextEditor \
+  --type dmg \
+  --dest dist \
+  --java-options '--enable-preview'
+```
+
+**Windows**:
+```cmd
+cd DevTools
+mvn clean package -DskipTests
+jpackage --input target ^
+  --name DevTools ^
+  --main-jar DevTools-1.0.0-SNAPSHOT-runnable.jar ^
+  --main-class com.daicy.devtools.TextEditor ^
+  --type msi ^
+  --dest dist
+```
+
+**Linux**:
+```bash
+cd DevTools
+mvn clean package -DskipTests
+jpackage --input target \
+  --name DevTools \
+  --main-jar DevTools-1.0.0-SNAPSHOT-runnable.jar \
+  --main-class com.daicy.devtools.TextEditor \
+  --type deb \
+  --dest dist
 ```
 
 ## 相关文档

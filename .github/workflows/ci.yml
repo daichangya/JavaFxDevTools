@@ -33,4 +33,40 @@ jobs:
       
     - name: Package
       run: mvn package -DskipTests
+      
+    - name: Verify runnable JAR files
+      run: |
+        echo "Checking for runnable JAR files..."
+        if [ -f "DevTools/target/DevTools-1.0.0-SNAPSHOT-runnable.jar" ]; then
+          echo "✓ DevTools runnable JAR found"
+          ls -lh DevTools/target/DevTools-1.0.0-SNAPSHOT-runnable.jar
+        else
+          echo "✗ DevTools runnable JAR not found"
+          exit 1
+        fi
+        
+        if [ -f "JavaFxEditor/target/JavaFxEditor-1.0.0-SNAPSHOT-runnable.jar" ]; then
+          echo "✓ JavaFxEditor runnable JAR found"
+          ls -lh JavaFxEditor/target/JavaFxEditor-1.0.0-SNAPSHOT-runnable.jar
+        else
+          echo "✗ JavaFxEditor runnable JAR not found"
+          exit 1
+        fi
+        
+    - name: Test JAR files
+      run: |
+        echo "Testing JAR file validity..."
+        # Test that JAR files can be read and contain main class
+        jar -tf DevTools/target/DevTools-1.0.0-SNAPSHOT-runnable.jar | grep -q "com/daicy/devtools/TextEditor.class" && echo "✓ DevTools main class found" || echo "✗ DevTools main class not found"
+        jar -tf JavaFxEditor/target/JavaFxEditor-1.0.0-SNAPSHOT-runnable.jar | grep -q "com/daicy/javafxeditor/TestEditor.class" && echo "✓ JavaFxEditor main class found" || echo "✗ JavaFxEditor main class not found"
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      if: github.event_name == 'pull_request'
+      with:
+        name: runnable-jars
+        path: |
+          DevTools/target/*-runnable.jar
+          JavaFxEditor/target/*-runnable.jar
+        retention-days: 7
 
