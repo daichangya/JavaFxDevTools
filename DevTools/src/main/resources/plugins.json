@@ -1,0 +1,11 @@
+[
+  {
+    "pluginClass": "com.daicy.devtools.plugin.JsonFormatPlugin"
+  },
+  {
+    "pluginClass": "com.daicy.devtools.plugin.MarkdownEditorPlugin"
+  },
+  {
+    "pluginClass": "com.daicy.devtools.plugin.HostsManagerPlugin"
+  }
+]

@@ -1,0 +1,21 @@
+module com.daicy.devtools {
+    requires javafx.fxml;
+    requires javafx.web;
+
+    requires org.fxmisc.richtext;
+    requires org.fxmisc.undo;
+    requires reactfx;
+
+    requires static lombok;
+    requires org.commonmark;
+    requires atlantafx.base;
+    requires org.fxmisc.flowless;
+    requires org.apache.commons.lang3;
+    requires com.fasterxml.jackson.databind;
+
+
+    opens com.daicy.devtools to javafx.fxml;
+    exports com.daicy.devtools;
+    exports com.daicy.devtools.plugin;
+
+}

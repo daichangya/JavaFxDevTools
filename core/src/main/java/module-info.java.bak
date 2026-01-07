@@ -1,0 +1,12 @@
+module com.daicy.core {
+    requires javafx.controls;
+    requires javafx.fxml;
+
+    requires java.desktop;
+    requires org.fxmisc.richtext;
+    requires org.fxmisc.undo;
+    requires reactfx;
+    opens com.daicy.core to javafx.fxml;
+    exports com.daicy.core;
+
+}
