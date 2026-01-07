@@ -81,6 +81,12 @@ mvn clean package
 
 访问 [Releases](https://github.com/daichangya/JavaFxDevTools/releases) 页面下载最新版本。
 
+**可执行文件**:
+- `DevTools-1.0.0-SNAPSHOT-runnable.jar` - DevTools 可执行 JAR（包含所有依赖）
+- `JavaFxEditor-1.0.0-SNAPSHOT-runnable.jar` - JavaFxEditor 可执行 JAR（包含所有依赖）
+
+**运行要求**: 需要 JDK 17 或更高版本
+
 ### 构建项目
 
 ```bash
@@ -157,6 +163,7 @@ java -jar JavaFxEditor/target/JavaFxEditor-1.0.0-SNAPSHOT.jar
 - 📚 [API 文档](API.md) - 核心 API 接口说明
 - 📦 [模块说明](MODULES.md) - 各模块详细说明
 - 🔌 [插件开发指南](PLUGIN_DEVELOPMENT.md) - 如何开发自定义插件
+- 📦 [打包指南](PACKAGING.md) - 如何打包可执行程序
 - 📝 [更新日志](CHANGELOG.md) - 版本变更记录
 - 🔒 [安全策略](SECURITY.md) - 安全漏洞报告流程
 
