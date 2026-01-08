@@ -585,7 +585,7 @@ jobs:
           LICENSE_ARG=""
           if [ -f "LICENSE" ]; then
             LICENSE_ARG="--license-file LICENSE"
-            echo "License file found"
+            echo "License file found (will be used for installer packages)"
           else
             echo "⚠️ LICENSE file not found, skipping license file"
           fi
@@ -601,7 +601,8 @@ jobs:
           echo "Checking JAR file:"
           jar tf DevTools/target/DevTools-$VERSION.jar | head -5 || echo "Failed to list JAR contents"
           
-          # Build jpackage command
+          # Build jpackage command for app-image
+          # Note: --license-file is NOT valid for app-image type, only for installer packages
           JPACKAGE_CMD="jpackage \
             --input DevTools/target \
             --name DevTools \
@@ -613,10 +614,7 @@ jobs:
             --description \"DevTools - Plugin-based Text Editor\" \
             --vendor \"daichangya\""
           
-          # Add license if available
-          if [ -n "$LICENSE_ARG" ]; then
-            JPACKAGE_CMD="$JPACKAGE_CMD $LICENSE_ARG"
-          fi
+          # Do NOT add license file for app-image (it's only valid for installer packages)
           
           # Platform specific options
           if [ "$PLATFORM" = "macos" ]; then
@@ -732,7 +730,7 @@ jobs:
           LICENSE_ARG=""
           if [ -f "LICENSE" ]; then
             LICENSE_ARG="--license-file LICENSE"
-            echo "License file found"
+            echo "License file found (will be used for installer packages)"
           else
             echo "⚠️ LICENSE file not found, skipping license file"
           fi
@@ -748,7 +746,8 @@ jobs:
           echo "Checking JAR file:"
           jar tf JavaFxEditor/target/JavaFxEditor-$VERSION.jar | head -5 || echo "Failed to list JAR contents"
           
-          # Build jpackage command
+          # Build jpackage command for app-image
+          # Note: --license-file is NOT valid for app-image type, only for installer packages
           JPACKAGE_CMD="jpackage \
             --input JavaFxEditor/target \
             --name JavaFxEditor \
@@ -760,10 +759,7 @@ jobs:
             --description \"JavaFxEditor - Customizable Code Editor\" \
             --vendor \"daichangya\""
           
-          # Add license if available
-          if [ -n "$LICENSE_ARG" ]; then
-            JPACKAGE_CMD="$JPACKAGE_CMD $LICENSE_ARG"
-          fi
+          # Do NOT add license file for app-image (it's only valid for installer packages)
           
           # macOS specific options
           if [ "$PLATFORM" = "macos" ]; then
