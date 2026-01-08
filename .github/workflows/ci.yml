@@ -61,7 +61,7 @@ jobs:
         jar -tf JavaFxEditor/target/JavaFxEditor-1.0.0-SNAPSHOT-runnable.jar | grep -q "com/daicy/javafxeditor/TestEditor.class" && echo "✓ JavaFxEditor main class found" || echo "✗ JavaFxEditor main class not found"
         
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: github.event_name == 'pull_request'
       with:
         name: runnable-jars
