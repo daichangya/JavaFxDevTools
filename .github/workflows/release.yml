@@ -347,58 +347,74 @@ jobs:
     - name: Prepare JavaFX modules for jpackage
       if: matrix.os == 'macos-latest'
       shell: bash
+      timeout-minutes: 5
       run: |
         echo "Preparing JavaFX modules for jpackage..."
         
         JAVAFX_VERSION="17.0.6"
         mkdir -p javafx-sdk/lib
         
-        # Method 1: Use Maven to download JavaFX JARs (most reliable)
-        echo "Downloading JavaFX modules from Maven..."
-        mvn dependency:copy -Dartifact=org.openjfx:javafx-controls:$JAVAFX_VERSION:jar:mac-aarch64 -DoutputDirectory=javafx-sdk/lib -q || true
-        mvn dependency:copy -Dartifact=org.openjfx:javafx-fxml:$JAVAFX_VERSION:jar:mac-aarch64 -DoutputDirectory=javafx-sdk/lib -q || true
-        mvn dependency:copy -Dartifact=org.openjfx:javafx-graphics:$JAVAFX_VERSION:jar:mac-aarch64 -DoutputDirectory=javafx-sdk/lib -q || true
-        mvn dependency:copy -Dartifact=org.openjfx:javafx-base:$JAVAFX_VERSION:jar:mac-aarch64 -DoutputDirectory=javafx-sdk/lib -q || true
-        mvn dependency:copy -Dartifact=org.openjfx:javafx-web:$JAVAFX_VERSION:jar:mac-aarch64 -DoutputDirectory=javafx-sdk/lib -q || true
-        mvn dependency:copy -Dartifact=org.openjfx:javafx-media:$JAVAFX_VERSION:jar:mac-aarch64 -DoutputDirectory=javafx-sdk/lib -q || true
+        # Method 1: Try downloading JavaFX SDK directly (faster, single download)
+        JAVAFX_SDK_URL="https://download2.gluonhq.com/openjfx/$JAVAFX_VERSION/openjfx-${JAVAFX_VERSION}_macos-aarch64_bin-sdk.zip"
+        echo "Attempting to download JavaFX SDK from: $JAVAFX_SDK_URL"
         
-        # Check if JARs were downloaded
-        JAR_COUNT=$(ls -1 javafx-sdk/lib/*.jar 2>/dev/null | wc -l | tr -d ' ')
-        
-        if [ "$JAR_COUNT" -ge 6 ]; then
-          echo "✅ Successfully downloaded $JAR_COUNT JavaFX JARs from Maven"
-          JAVAFX_MODULE_PATH="javafx-sdk/lib"
-        else
-          echo "⚠️ Only downloaded $JAR_COUNT JARs, trying alternative method..."
+        if curl -L --connect-timeout 30 --max-time 300 -f -o javafx-sdk.zip "$JAVAFX_SDK_URL" 2>&1 && [ -f javafx-sdk.zip ] && [ -s javafx-sdk.zip ]; then
+          echo "Downloaded $(du -h javafx-sdk.zip | cut -f1), verifying..."
           
-          # Method 2: Try downloading JavaFX SDK directly
-          JAVAFX_SDK_URL="https://download2.gluonhq.com/openjfx/$JAVAFX_VERSION/openjfx-${JAVAFX_VERSION}_macos-aarch64_bin-sdk.zip"
-          echo "Attempting to download JavaFX SDK from: $JAVAFX_SDK_URL"
-          
-          if curl -L -f -o javafx-sdk.zip "$JAVAFX_SDK_URL" 2>/dev/null && [ -f javafx-sdk.zip ] && unzip -t javafx-sdk.zip >/dev/null 2>&1; then
-            echo "✅ Successfully downloaded JavaFX SDK zip"
+          if unzip -t javafx-sdk.zip >/dev/null 2>&1; then
+            echo "✅ Zip file is valid, extracting..."
             unzip -q javafx-sdk.zip -d javafx-sdk-temp
             # Find the actual SDK directory
-            SDK_DIR=$(find javafx-sdk-temp -type d -name "javafx-sdk-*" | head -1)
+            SDK_DIR=$(find javafx-sdk-temp -type d -name "javafx-sdk-*" -o -name "javafx-sdk" | head -1)
             if [ -n "$SDK_DIR" ] && [ -d "$SDK_DIR/lib" ]; then
               cp -r "$SDK_DIR/lib"/* javafx-sdk/lib/ 2>/dev/null || true
               JAVAFX_MODULE_PATH="javafx-sdk/lib"
               echo "✅ Extracted JavaFX SDK to javafx-sdk/lib"
+              rm -rf javafx-sdk-temp javafx-sdk.zip 2>/dev/null || true
             else
-              echo "⚠️ Could not find SDK lib directory in zip"
+              echo "⚠️ Could not find SDK lib directory in zip, trying Maven..."
+              rm -rf javafx-sdk-temp javafx-sdk.zip 2>/dev/null || true
             fi
-            rm -rf javafx-sdk-temp javafx-sdk.zip 2>/dev/null || true
           else
-            echo "⚠️ Failed to download JavaFX SDK zip"
+            echo "⚠️ Zip file is invalid, trying Maven..."
+            rm -f javafx-sdk.zip 2>/dev/null || true
           fi
-          
-          # Final check
-          JAR_COUNT=$(ls -1 javafx-sdk/lib/*.jar 2>/dev/null | wc -l | tr -d ' ')
-          if [ "$JAR_COUNT" -lt 6 ]; then
-            echo "❌ Failed to download sufficient JavaFX modules. Found $JAR_COUNT JARs, need at least 6."
-            echo "This may cause jpackage to fail, but continuing anyway..."
-            JAVAFX_MODULE_PATH="javafx-sdk/lib"
-          fi
+        else
+          echo "⚠️ Failed to download JavaFX SDK zip, trying Maven..."
+        fi
+        
+        # Method 2: Use Maven to download JavaFX JARs (fallback)
+        JAR_COUNT=$(ls -1 javafx-sdk/lib/*.jar 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$JAR_COUNT" -lt 6 ]; then
+          echo "Downloading JavaFX modules from Maven (fallback)..."
+          # Use a single Maven command with multiple artifacts (faster)
+          mvn dependency:copy-dependencies \
+            -DincludeArtifactIds=javafx-controls,javafx-fxml,javafx-graphics,javafx-base,javafx-web,javafx-media \
+            -DincludeGroupIds=org.openjfx \
+            -DincludeClassifiers=mac-aarch64 \
+            -DoutputDirectory=javafx-sdk/lib \
+            -Dversion=$JAVAFX_VERSION \
+            -q || {
+            echo "Maven batch download failed, trying individual downloads..."
+            # Fallback to individual downloads with timeout
+            for module in controls fxml graphics base web media; do
+              timeout 60 mvn dependency:copy \
+                -Dartifact=org.openjfx:javafx-$module:$JAVAFX_VERSION:jar:mac-aarch64 \
+                -DoutputDirectory=javafx-sdk/lib \
+                -q 2>/dev/null || echo "Failed to download javafx-$module"
+            done
+          }
+        fi
+        
+        # Final check
+        JAR_COUNT=$(ls -1 javafx-sdk/lib/*.jar 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$JAR_COUNT" -ge 6 ]; then
+          echo "✅ Successfully prepared $JAR_COUNT JavaFX JARs"
+          JAVAFX_MODULE_PATH="javafx-sdk/lib"
+        else
+          echo "⚠️ Only found $JAR_COUNT JARs (need 6), jpackage may fail"
+          echo "Continuing anyway - jpackage might work with Fat JAR..."
+          JAVAFX_MODULE_PATH="javafx-sdk/lib"
         fi
         
         echo "JavaFX module path: $JAVAFX_MODULE_PATH"
@@ -411,7 +427,7 @@ jobs:
           ls -lh "$JAVAFX_MODULE_PATH" | head -10
           echo "Total JARs: $(ls -1 $JAVAFX_MODULE_PATH/*.jar 2>/dev/null | wc -l | tr -d ' ')"
         else
-          echo "⚠️ Warning: JavaFX module path not found, jpackage may fail"
+          echo "⚠️ Warning: JavaFX module path not found"
         fi
         
     - name: Install dependencies (Windows)
