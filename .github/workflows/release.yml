@@ -693,9 +693,8 @@ jobs:
                   --app-version \"$VERSION\""
                 
                 # macOS specific options for conversion
-                if [ "$PLATFORM" = "macos" ]; then
-                  # Note: --mac-sign is not added to disable code signing (default behavior)
-                fi
+                # Note: --mac-sign is not added to disable code signing (default behavior)
+                # No additional macOS-specific options needed for conversion
                 
                 echo "Converting app-image to $PKG_TYPE..."
                 echo "Command: $CONVERT_CMD"
@@ -762,29 +761,57 @@ jobs:
           
           # Do NOT add license file for app-image (it's only valid for installer packages)
           
-          # macOS specific options
+          # Platform specific options
           if [ "$PLATFORM" = "macos" ]; then
-            # Disable code signing for testing
+            # Add macOS package name
+            # Note: --mac-sign is not added here to disable code signing (default behavior)
             JPACKAGE_CMD="$JPACKAGE_CMD --mac-package-name \"JavaFxEditor\""
-            
-            # Add JavaFX module path and modules if available
-            if [ -n "$JAVAFX_MODULE_PATH" ] && [ -d "$JAVAFX_MODULE_PATH" ]; then
-              JPACKAGE_CMD="$JPACKAGE_CMD --module-path \"$JAVAFX_MODULE_PATH\" --add-modules \"$JAVAFX_MODULES\""
-              echo "Adding JavaFX modules: $JAVAFX_MODULES"
-            else
-              echo "⚠️ Warning: JavaFX module path not set, jpackage may fail to find JavaFX modules"
-            fi
+          fi
+          
+          # Add JavaFX module path and modules if available (for all platforms)
+          if [ -n "$JAVAFX_MODULE_PATH" ] && [ -d "$JAVAFX_MODULE_PATH" ]; then
+            JPACKAGE_CMD="$JPACKAGE_CMD --module-path \"$JAVAFX_MODULE_PATH\" --add-modules \"$JAVAFX_MODULES\""
+            echo "Adding JavaFX modules: $JAVAFX_MODULES"
+          else
+            echo "⚠️ Warning: JavaFX module path not set, jpackage may fail to find JavaFX modules"
+            echo "Note: This might work if using Fat JAR with embedded JavaFX"
           fi
           
           echo "Executing jpackage command..."
           echo "Command: $JPACKAGE_CMD"
           
+          # Capture both stdout and stderr, and show errors immediately
+          set +e  # Don't exit on error
           JPACKAGE_OUTPUT=$(eval $JPACKAGE_CMD --verbose 2>&1)
           APP_IMAGE_EXIT_CODE=$?
+          set -e  # Re-enable exit on error
           
           echo "jpackage exit code: $APP_IMAGE_EXIT_CODE"
           echo "jpackage output:"
           echo "$JPACKAGE_OUTPUT"
+          
+          # If failed, show more diagnostic info
+          if [ $APP_IMAGE_EXIT_CODE -ne 0 ]; then
+            echo ""
+            echo "=== jpackage failed, diagnostic information ==="
+            echo "Java version:"
+            java -version 2>&1
+            echo ""
+            echo "jpackage version:"
+            jpackage --version 2>&1 || echo "jpackage version check failed"
+            echo ""
+            echo "JAR file info:"
+            ls -lh "JavaFxEditor/target/JavaFxEditor-$VERSION.jar" || echo "JAR file not found"
+            echo ""
+            echo "JavaFX module path: $JAVAFX_MODULE_PATH"
+            if [ -n "$JAVAFX_MODULE_PATH" ] && [ -d "$JAVAFX_MODULE_PATH" ]; then
+              echo "JavaFX modules found:"
+              ls -lh "$JAVAFX_MODULE_PATH" | head -10
+            else
+              echo "JavaFX module path not found or empty"
+            fi
+            echo "=============================================="
+          fi
           
           if [ $APP_IMAGE_EXIT_CODE -eq 0 ]; then
             echo "✅ JavaFxEditor app-image created successfully"
@@ -816,9 +843,8 @@ jobs:
                 fi
                 
                 # macOS specific options for conversion
-                if [ "$PLATFORM" = "macos" ]; then
-                  # Note: --mac-sign is not added to disable code signing (default behavior)
-                fi
+                # Note: --mac-sign is not added to disable code signing (default behavior)
+                # No additional macOS-specific options needed for conversion
                 
                 echo "Converting app-image to $PKG_TYPE..."
                 echo "Command: $CONVERT_CMD"
