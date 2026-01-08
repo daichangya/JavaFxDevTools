@@ -354,15 +354,34 @@ jobs:
         JAVAFX_VERSION="17.0.6"
         mkdir -p javafx-sdk/lib
         
-        # Detect macOS architecture
+        # Detect platform and architecture
+        OS_TYPE="${{ runner.os }}"
         ARCH=$(uname -m)
-        if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
-          JAVAFX_ARCH="osx-aarch64"
+        
+        if [ "$OS_TYPE" = "Linux" ]; then
+          if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+            JAVAFX_ARCH="linux-aarch64"
+            MAVEN_CLASSIFIER="linux-aarch64"
+          else
+            JAVAFX_ARCH="linux-x64"
+            MAVEN_CLASSIFIER="linux"
+          fi
+        elif [ "$OS_TYPE" = "macOS" ]; then
+          if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
+            JAVAFX_ARCH="osx-aarch64"
+            MAVEN_CLASSIFIER="mac-aarch64"
+          else
+            JAVAFX_ARCH="osx-x64"
+            MAVEN_CLASSIFIER="mac"
+          fi
         else
-          JAVAFX_ARCH="osx-x64"
+          echo "⚠️ Unknown OS: $OS_TYPE, defaulting to linux-x64"
+          JAVAFX_ARCH="linux-x64"
+          MAVEN_CLASSIFIER="linux"
         fi
         
-        echo "Detected architecture: $ARCH, using JavaFX: $JAVAFX_ARCH"
+        echo "Detected platform: $OS_TYPE, architecture: $ARCH"
+        echo "Using JavaFX: $JAVAFX_ARCH, Maven classifier: $MAVEN_CLASSIFIER"
         
         # Method 1: Try downloading JavaFX SDK directly (fastest)
         JAVAFX_SDK_URL="https://download2.gluonhq.com/openjfx/$JAVAFX_VERSION/openjfx-${JAVAFX_VERSION}_${JAVAFX_ARCH}_bin-sdk.zip"
