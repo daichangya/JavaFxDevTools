@@ -258,11 +258,10 @@ jobs:
     - name: Upload to Release
       uses: softprops/action-gh-release@v1
       with:
+        token: ${{ secrets.GITHUB_TOKEN }}
         files: |
           release-assets/*.jar
           release-assets/*.sha256
           release-assets/*.sh
           release-assets/*.bat
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
