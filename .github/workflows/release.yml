@@ -339,17 +339,52 @@ jobs:
       shell: bash
       run: |
         VERSION="${{ steps.version.outputs.version }}"
+        
+        echo "=== Preparing JAR files for jpackage ==="
+        echo "Version: $VERSION"
+        echo "Current directory: $(pwd)"
+        
+        # List downloaded artifacts
+        echo ""
+        echo "Checking downloaded artifacts:"
+        ls -lah jars/ 2>/dev/null || echo "jars/ directory does not exist"
+        
         mkdir -p DevTools/target JavaFxEditor/target
         
         # Copy JAR files to target directories
         if [ -f "jars/DevTools-$VERSION.jar" ]; then
           cp jars/DevTools-$VERSION.jar DevTools/target/
-          echo "Copied DevTools-$VERSION.jar"
+          echo "✅ Copied DevTools-$VERSION.jar to DevTools/target/"
+          ls -lh DevTools/target/DevTools-$VERSION.jar
+        else
+          echo "❌ JAR file not found: jars/DevTools-$VERSION.jar"
+          echo "Available files in jars/:"
+          ls -lah jars/ 2>/dev/null || echo "jars/ directory does not exist"
         fi
         
         if [ -f "jars/JavaFxEditor-$VERSION.jar" ]; then
           cp jars/JavaFxEditor-$VERSION.jar JavaFxEditor/target/
-          echo "Copied JavaFxEditor-$VERSION.jar"
+          echo "✅ Copied JavaFxEditor-$VERSION.jar to JavaFxEditor/target/"
+          ls -lh JavaFxEditor/target/JavaFxEditor-$VERSION.jar
+        else
+          echo "❌ JAR file not found: jars/JavaFxEditor-$VERSION.jar"
+          echo "Available files in jars/:"
+          ls -lah jars/ 2>/dev/null || echo "jars/ directory does not exist"
+        fi
+        
+        # Verify files are in place
+        echo ""
+        echo "=== Verification ==="
+        if [ -f "DevTools/target/DevTools-$VERSION.jar" ]; then
+          echo "✅ DevTools JAR verified: DevTools/target/DevTools-$VERSION.jar"
+        else
+          echo "❌ DevTools JAR missing: DevTools/target/DevTools-$VERSION.jar"
+        fi
+        
+        if [ -f "JavaFxEditor/target/JavaFxEditor-$VERSION.jar" ]; then
+          echo "✅ JavaFxEditor JAR verified: JavaFxEditor/target/JavaFxEditor-$VERSION.jar"
+        else
+          echo "❌ JavaFxEditor JAR missing: JavaFxEditor/target/JavaFxEditor-$VERSION.jar"
         fi
         
     - name: Build native packages
