@@ -494,8 +494,16 @@ jobs:
           
           # macOS specific options
           if [ "$PLATFORM" = "macos" ]; then
-            # Add macOS specific options if needed
-            JPACKAGE_CMD="$JPACKAGE_CMD --mac-package-name \"DevTools\""
+            # Disable code signing for testing
+            JPACKAGE_CMD="$JPACKAGE_CMD --mac-package-name \"DevTools\" --mac-sign false"
+            
+            # Add JavaFX module path and modules if available
+            if [ -n "$JAVAFX_MODULE_PATH" ] && [ -d "$JAVAFX_MODULE_PATH" ]; then
+              JPACKAGE_CMD="$JPACKAGE_CMD --module-path \"$JAVAFX_MODULE_PATH\" --add-modules \"$JAVAFX_MODULES\""
+              echo "Adding JavaFX modules: $JAVAFX_MODULES"
+            else
+              echo "⚠️ Warning: JavaFX module path not set, jpackage may fail to find JavaFX modules"
+            fi
           fi
           
           echo "Executing jpackage command..."
