@@ -618,8 +618,9 @@ jobs:
           
           # Platform specific options
           if [ "$PLATFORM" = "macos" ]; then
-            # Disable code signing for testing
-            JPACKAGE_CMD="$JPACKAGE_CMD --mac-package-name \"DevTools\" --mac-sign false"
+            # Add macOS package name
+            # Note: --mac-sign is not added here to disable code signing (default behavior)
+            JPACKAGE_CMD="$JPACKAGE_CMD --mac-package-name \"DevTools\""
           fi
           
           # Add JavaFX module path and modules if available (for all platforms)
