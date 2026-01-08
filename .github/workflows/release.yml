@@ -375,7 +375,18 @@ jobs:
         # Build DevTools native package
         if [ -f "DevTools/target/DevTools-$VERSION.jar" ]; then
           echo "Creating DevTools-$PLATFORM package ($PKG_TYPE)..."
-          jpackage \
+          echo "JAR file size: $(du -h DevTools/target/DevTools-$VERSION.jar | cut -f1)"
+          
+          # Check if LICENSE file exists
+          LICENSE_ARG=""
+          if [ -f "LICENSE" ]; then
+            LICENSE_ARG="--license-file LICENSE"
+            echo "License file found"
+          else
+            echo "⚠️ LICENSE file not found, skipping license file"
+          fi
+          
+          if jpackage \
             --input DevTools/target \
             --name DevTools \
             --main-jar DevTools-$VERSION.jar \
@@ -385,13 +396,33 @@ jobs:
             --app-version "$VERSION" \
             --description "DevTools - Plugin-based Text Editor" \
             --vendor "daichangya" \
-            --license-file LICENSE 2>&1 || echo "⚠️ DevTools native package creation failed"
+            $LICENSE_ARG \
+            --verbose 2>&1 | tee /tmp/jpackage-devtools.log; then
+            echo "✅ DevTools native package created successfully"
+          else
+            echo "❌ DevTools native package creation failed"
+            echo "Error log:"
+            cat /tmp/jpackage-devtools.log || true
+          fi
+        else
+          echo "⚠️ DevTools JAR file not found: DevTools/target/DevTools-$VERSION.jar"
         fi
         
         # Build JavaFxEditor native package
         if [ -f "JavaFxEditor/target/JavaFxEditor-$VERSION.jar" ]; then
           echo "Creating JavaFxEditor-$PLATFORM package ($PKG_TYPE)..."
-          jpackage \
+          echo "JAR file size: $(du -h JavaFxEditor/target/JavaFxEditor-$VERSION.jar | cut -f1)"
+          
+          # Check if LICENSE file exists
+          LICENSE_ARG=""
+          if [ -f "LICENSE" ]; then
+            LICENSE_ARG="--license-file LICENSE"
+            echo "License file found"
+          else
+            echo "⚠️ LICENSE file not found, skipping license file"
+          fi
+          
+          if jpackage \
             --input JavaFxEditor/target \
             --name JavaFxEditor \
             --main-jar JavaFxEditor-$VERSION.jar \
@@ -401,16 +432,52 @@ jobs:
             --app-version "$VERSION" \
             --description "JavaFxEditor - Customizable Code Editor" \
             --vendor "daichangya" \
-            --license-file LICENSE 2>&1 || echo "⚠️ JavaFxEditor native package creation failed"
+            $LICENSE_ARG \
+            --verbose 2>&1 | tee /tmp/jpackage-editor.log; then
+            echo "✅ JavaFxEditor native package created successfully"
+          else
+            echo "❌ JavaFxEditor native package creation failed"
+            echo "Error log:"
+            cat /tmp/jpackage-editor.log || true
+          fi
+        else
+          echo "⚠️ JavaFxEditor JAR file not found: JavaFxEditor/target/JavaFxEditor-$VERSION.jar"
         fi
         
         echo ""
         echo "Native packages for $PLATFORM:"
         ls -lh release-assets/native-$PLATFORM/ 2>/dev/null || echo "No native packages generated for $PLATFORM"
         
+    - name: List generated packages
+      shell: bash
+      run: |
+        PLATFORM="${{ matrix.platform-name }}"
+        echo "=== Checking for generated packages ==="
+        echo "Platform: $PLATFORM"
+        echo "Directory: release-assets/native-$PLATFORM"
+        
+        if [ -d "release-assets/native-$PLATFORM" ]; then
+          echo "Directory exists. Contents:"
+          ls -lah release-assets/native-$PLATFORM/ || echo "ls failed"
+          
+          echo ""
+          echo "Finding package files:"
+          find release-assets/native-$PLATFORM -type f || echo "find returned no files"
+        else
+          echo "⚠️ Directory does not exist"
+        fi
+        
     - name: Upload native packages to Release
       uses: softprops/action-gh-release@v1
+      continue-on-error: true
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        files: release-assets/native-${{ matrix.platform-name }}/**
+        files: |
+          release-assets/native-${{ matrix.platform-name }}/*.deb
+          release-assets/native-${{ matrix.platform-name }}/*.dmg
+          release-assets/native-${{ matrix.platform-name }}/*.msi
+          release-assets/native-${{ matrix.platform-name }}/*.exe
+          release-assets/native-${{ matrix.platform-name }}/*.pkg
+          release-assets/native-${{ matrix.platform-name }}/*.AppImage
         tag_name: ${{ github.ref_name }}
+        fail_on_unmatched_files: false
