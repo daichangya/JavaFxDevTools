@@ -255,6 +255,81 @@ jobs:
         echo "Release assets prepared:"
         ls -lh release-assets/
         
+    - name: Install dependencies for jpackage (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y fakeroot dpkg-dev
+        
+    - name: Build native packages
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        echo "Building native packages using jpackage..."
+        echo "Platform: ${{ runner.os }}"
+        
+        # Check if jpackage is available
+        if ! command -v jpackage &> /dev/null; then
+          echo "⚠️ jpackage not found, skipping native package generation"
+          echo "Note: jpackage requires JDK 14+ and is available in JDK 17"
+          exit 0
+        fi
+        
+        jpackage --version || echo "jpackage version check failed"
+        
+        mkdir -p release-assets/native
+        
+        # Determine package type based on platform
+        if [ "${{ runner.os }}" == "Linux" ]; then
+          PKG_TYPE="deb"
+        elif [ "${{ runner.os }}" == "macOS" ]; then
+          PKG_TYPE="dmg"
+        elif [ "${{ runner.os }}" == "Windows" ]; then
+          PKG_TYPE="msi"
+        else
+          PKG_TYPE="app-image"
+        fi
+        
+        echo "Package type: $PKG_TYPE"
+        
+        # Build DevTools native package
+        if [ -f "DevTools/target/DevTools-$VERSION.jar" ]; then
+          echo "Creating DevTools native package ($PKG_TYPE)..."
+          jpackage \
+            --input DevTools/target \
+            --name DevTools \
+            --main-jar DevTools-$VERSION.jar \
+            --main-class com.daicy.devtools.TextEditor \
+            --type "$PKG_TYPE" \
+            --dest release-assets/native \
+            --app-version "$VERSION" \
+            --description "DevTools - Plugin-based Text Editor" \
+            --vendor "daichangya" \
+            --license-file LICENSE 2>&1 || echo "⚠️ DevTools native package creation failed"
+        fi
+        
+        # Build JavaFxEditor native package
+        if [ -f "JavaFxEditor/target/JavaFxEditor-$VERSION.jar" ]; then
+          echo "Creating JavaFxEditor native package ($PKG_TYPE)..."
+          jpackage \
+            --input JavaFxEditor/target \
+            --name JavaFxEditor \
+            --main-jar JavaFxEditor-$VERSION.jar \
+            --main-class com.daicy.javafxeditor.TestEditor \
+            --type "$PKG_TYPE" \
+            --dest release-assets/native \
+            --app-version "$VERSION" \
+            --description "JavaFxEditor - Customizable Code Editor" \
+            --vendor "daichangya" \
+            --license-file LICENSE 2>&1 || echo "⚠️ JavaFxEditor native package creation failed"
+        fi
+        
+        echo ""
+        echo "Native packages (if any):"
+        ls -lh release-assets/native/ 2>/dev/null || echo "No native packages generated"
+        echo ""
+        echo "Note: Native packages are only generated on the platform they're built on."
+        echo "For multi-platform packages, consider using a matrix strategy."
+        
     - name: Upload to Release
       uses: softprops/action-gh-release@v1
       with:
@@ -264,4 +339,5 @@ jobs:
           release-assets/*.sha256
           release-assets/*.sh
           release-assets/*.bat
+          release-assets/native/**
 
