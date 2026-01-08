@@ -354,9 +354,49 @@ jobs:
         JAVAFX_VERSION="17.0.6"
         mkdir -p javafx-sdk/lib
         
-        # Use Maven to download JavaFX JARs using individual commands
-        # This is more reliable than batch operations
-        echo "Downloading JavaFX modules from Maven (individual downloads)..."
+        # Detect macOS architecture
+        ARCH=$(uname -m)
+        if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
+          JAVAFX_ARCH="osx-aarch64"
+        else
+          JAVAFX_ARCH="osx-x64"
+        fi
+        
+        echo "Detected architecture: $ARCH, using JavaFX: $JAVAFX_ARCH"
+        
+        # Method 1: Try downloading JavaFX SDK directly (fastest)
+        JAVAFX_SDK_URL="https://download2.gluonhq.com/openjfx/$JAVAFX_VERSION/openjfx-${JAVAFX_VERSION}_${JAVAFX_ARCH}_bin-sdk.zip"
+        echo "Attempting to download JavaFX SDK from: $JAVAFX_SDK_URL"
+        
+        if curl -L --connect-timeout 30 --max-time 300 -f -o javafx-sdk.zip "$JAVAFX_SDK_URL" 2>&1 && [ -f javafx-sdk.zip ] && [ -s javafx-sdk.zip ]; then
+          echo "Downloaded $(du -h javafx-sdk.zip | cut -f1), verifying..."
+          
+          if unzip -t javafx-sdk.zip >/dev/null 2>&1; then
+            echo "✅ Zip file is valid, extracting..."
+            unzip -q javafx-sdk.zip -d javafx-sdk-temp
+            # Find the actual SDK directory
+            SDK_DIR=$(find javafx-sdk-temp -type d -name "javafx-sdk-*" -o -name "javafx-sdk" | head -1)
+            if [ -n "$SDK_DIR" ] && [ -d "$SDK_DIR/lib" ]; then
+              cp -r "$SDK_DIR/lib"/* javafx-sdk/lib/ 2>/dev/null || true
+              JAVAFX_MODULE_PATH="javafx-sdk/lib"
+              echo "✅ Extracted JavaFX SDK to javafx-sdk/lib"
+              rm -rf javafx-sdk-temp javafx-sdk.zip 2>/dev/null || true
+            else
+              echo "⚠️ Could not find SDK lib directory in zip, trying Maven..."
+              rm -rf javafx-sdk-temp javafx-sdk.zip 2>/dev/null || true
+            fi
+          else
+            echo "⚠️ Zip file is invalid, trying Maven..."
+            rm -f javafx-sdk.zip 2>/dev/null || true
+          fi
+        else
+          echo "⚠️ Failed to download JavaFX SDK zip, trying Maven..."
+        fi
+        
+        # Method 2: Use Maven to download JavaFX JARs (fallback)
+        JAR_COUNT=$(ls -1 javafx-sdk/lib/*.jar 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$JAR_COUNT" -lt 6 ]; then
+          echo "Downloading JavaFX modules from Maven (fallback)..."
         
         MODULES=("controls" "fxml" "graphics" "base" "web" "media")
         SUCCESS_COUNT=0
