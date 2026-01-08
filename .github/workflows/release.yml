@@ -402,16 +402,16 @@ jobs:
         SUCCESS_COUNT=0
         
         for module in "${MODULES[@]}"; do
-          echo "Downloading javafx-$module..."
+          echo "Downloading javafx-$module (classifier: $MAVEN_CLASSIFIER)..."
           if mvn dependency:copy \
-            -Dartifact=org.openjfx:javafx-$module:$JAVAFX_VERSION:jar:mac-aarch64 \
+            -Dartifact=org.openjfx:javafx-$module:$JAVAFX_VERSION:jar:$MAVEN_CLASSIFIER \
             -DoutputDirectory=javafx-sdk/lib \
             -Dtransitive=false \
             -q 2>&1; then
             SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
             echo "✅ Downloaded javafx-$module"
           else
-            echo "⚠️ Failed to download javafx-$module, trying without classifier..."
+            echo "⚠️ Failed to download javafx-$module with $MAVEN_CLASSIFIER, trying without classifier..."
             # Try without classifier as fallback
             mvn dependency:copy \
               -Dartifact=org.openjfx:javafx-$module:$JAVAFX_VERSION:jar \
