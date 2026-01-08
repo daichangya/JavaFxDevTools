@@ -80,21 +80,33 @@ echo "=========================================="
 echo "步骤 3: 生成 SHA256 校验和"
 echo "=========================================="
 
-cd DevTools/target
-if [ -f "DevTools-$VERSION.jar" ]; then
-    sha256sum "DevTools-$VERSION.jar" > "DevTools-$VERSION.jar.sha256"
-    echo "✅ DevTools 校验和:"
-    cat "DevTools-$VERSION.jar.sha256"
+# 检测 sha256 命令
+if command -v sha256sum &> /dev/null; then
+    SHA256_CMD="sha256sum"
+elif command -v shasum &> /dev/null; then
+    SHA256_CMD="shasum -a 256"
+else
+    echo "⚠️  警告: 未找到 sha256sum 或 shasum 命令，跳过校验和生成"
+    SHA256_CMD=""
 fi
-cd "$PROJECT_DIR"
 
-cd JavaFxEditor/target
-if [ -f "JavaFxEditor-$VERSION.jar" ]; then
-    sha256sum "JavaFxEditor-$VERSION.jar" > "JavaFxEditor-$VERSION.jar.sha256"
-    echo "✅ JavaFxEditor 校验和:"
-    cat "JavaFxEditor-$VERSION.jar.sha256"
+if [ -n "$SHA256_CMD" ]; then
+    cd DevTools/target
+    if [ -f "DevTools-$VERSION.jar" ]; then
+        $SHA256_CMD "DevTools-$VERSION.jar" > "DevTools-$VERSION.jar.sha256"
+        echo "✅ DevTools 校验和:"
+        cat "DevTools-$VERSION.jar.sha256"
+    fi
+    cd "$PROJECT_DIR"
+
+    cd JavaFxEditor/target
+    if [ -f "JavaFxEditor-$VERSION.jar" ]; then
+        $SHA256_CMD "JavaFxEditor-$VERSION.jar" > "JavaFxEditor-$VERSION.jar.sha256"
+        echo "✅ JavaFxEditor 校验和:"
+        cat "JavaFxEditor-$VERSION.jar.sha256"
+    fi
+    cd "$PROJECT_DIR"
 fi
-cd "$PROJECT_DIR"
 
 echo ""
 echo "=========================================="
@@ -155,6 +167,16 @@ if [ "$JPACKAGE_AVAILABLE" = true ]; then
             LICENSE_ARG="--license-file LICENSE"
         fi
         
+        # 对于 macOS，jpackage 需要 JavaFX 模块路径
+        JAVA_MODULE_PATH=""
+        if [ "$PLATFORM" = "macos" ]; then
+            # 尝试从 Maven 本地仓库找到 JavaFX
+            JAVAFX_PATH=$(find ~/.m2/repository/org/openjfx -name "javafx-controls-*.jar" 2>/dev/null | head -1 | xargs dirname 2>/dev/null || echo "")
+            if [ -n "$JAVAFX_PATH" ]; then
+                JAVA_MODULE_PATH="--module-path $JAVAFX_PATH"
+            fi
+        fi
+        
         if jpackage \
             --input DevTools/target \
             --name DevTools \
@@ -166,10 +188,11 @@ if [ "$JPACKAGE_AVAILABLE" = true ]; then
             --description "DevTools - Plugin-based Text Editor" \
             --vendor "daichangya" \
             $LICENSE_ARG \
-            --verbose; then
+            $JAVA_MODULE_PATH \
+            --verbose 2>&1; then
             echo "✅ DevTools 原生包创建成功"
         else
-            echo "❌ DevTools 原生包创建失败"
+            echo "❌ DevTools 原生包创建失败（可能需要在对应平台运行）"
         fi
     fi
     
@@ -183,6 +206,16 @@ if [ "$JPACKAGE_AVAILABLE" = true ]; then
             LICENSE_ARG="--license-file LICENSE"
         fi
         
+        # 对于 macOS，jpackage 需要 JavaFX 模块路径
+        JAVA_MODULE_PATH=""
+        if [ "$PLATFORM" = "macos" ]; then
+            # 尝试从 Maven 本地仓库找到 JavaFX
+            JAVAFX_PATH=$(find ~/.m2/repository/org/openjfx -name "javafx-controls-*.jar" 2>/dev/null | head -1 | xargs dirname 2>/dev/null || echo "")
+            if [ -n "$JAVAFX_PATH" ]; then
+                JAVA_MODULE_PATH="--module-path $JAVAFX_PATH"
+            fi
+        fi
+        
         if jpackage \
             --input JavaFxEditor/target \
             --name JavaFxEditor \
@@ -194,10 +227,11 @@ if [ "$JPACKAGE_AVAILABLE" = true ]; then
             --description "JavaFxEditor - Customizable Code Editor" \
             --vendor "daichangya" \
             $LICENSE_ARG \
-            --verbose; then
+            $JAVA_MODULE_PATH \
+            --verbose 2>&1; then
             echo "✅ JavaFxEditor 原生包创建成功"
         else
-            echo "❌ JavaFxEditor 原生包创建失败"
+            echo "❌ JavaFxEditor 原生包创建失败（可能需要在对应平台运行）"
         fi
     fi
     
