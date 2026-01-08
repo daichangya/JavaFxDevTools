@@ -394,49 +394,35 @@ jobs:
             echo "✅ Zip file is valid, extracting..."
             unzip -q javafx-sdk.zip -d javafx-sdk-temp
             
-            # Debug: List extracted directory structure
-            echo "Extracted directory structure:"
-            find javafx-sdk-temp -type d -maxdepth 3 | head -20
+            # JavaFX SDK zip structure is: javafx-sdk-{VERSION}/lib
+            SDK_DIR="javafx-sdk-temp/javafx-sdk-$JAVAFX_VERSION"
             
-            # Find the actual SDK directory - try multiple patterns
-            SDK_DIR=""
-            for pattern in "javafx-sdk-*" "javafx-sdk" "javafx" "lib"; do
-              FOUND=$(find javafx-sdk-temp -type d -name "$pattern" | head -1)
-              if [ -n "$FOUND" ]; then
-                # Check if this directory or a subdirectory contains lib
-                if [ -d "$FOUND/lib" ]; then
-                  SDK_DIR="$FOUND"
-                  break
-                elif [ "$pattern" = "lib" ] && [ -d "$FOUND" ]; then
-                  # If we found a lib directory directly, use its parent
-                  SDK_DIR=$(dirname "$FOUND")
-                  break
-                fi
-              fi
-            done
-            
-            # Also try to find lib directory directly
-            if [ -z "$SDK_DIR" ]; then
-              LIB_DIR=$(find javafx-sdk-temp -type d -name "lib" | head -1)
-              if [ -n "$LIB_DIR" ]; then
-                SDK_DIR=$(dirname "$LIB_DIR")
-                echo "Found lib directory at: $LIB_DIR"
-              fi
-            fi
-            
-            if [ -n "$SDK_DIR" ] && [ -d "$SDK_DIR/lib" ]; then
+            if [ -d "$SDK_DIR/lib" ]; then
               echo "Found SDK directory: $SDK_DIR"
               cp -r "$SDK_DIR/lib"/* javafx-sdk/lib/ 2>/dev/null || true
               JAVAFX_MODULE_PATH="javafx-sdk/lib"
+              JAR_COUNT=$(ls -1 javafx-sdk/lib/*.jar 2>/dev/null | wc -l | tr -d ' ')
               echo "✅ Extracted JavaFX SDK to javafx-sdk/lib"
-              echo "Copied $(ls -1 javafx-sdk/lib/*.jar 2>/dev/null | wc -l | tr -d ' ') JAR files"
+              echo "Copied $JAR_COUNT JAR files"
               rm -rf javafx-sdk-temp javafx-sdk.zip 2>/dev/null || true
             else
-              echo "⚠️ Could not find SDK lib directory in zip"
-              echo "Trying to find any .jar files in extracted directory..."
-              find javafx-sdk-temp -name "*.jar" -type f | head -10
-              echo "Trying Maven download as fallback..."
-              rm -rf javafx-sdk-temp javafx-sdk.zip 2>/dev/null || true
+              echo "⚠️ Could not find expected SDK directory: $SDK_DIR/lib"
+              echo "Extracted directory structure:"
+              find javafx-sdk-temp -type d -maxdepth 2 | head -10
+              echo ""
+              echo "Trying to find lib directory..."
+              LIB_DIR=$(find javafx-sdk-temp -type d -name "lib" | head -1)
+              if [ -n "$LIB_DIR" ] && [ -d "$LIB_DIR" ]; then
+                echo "Found lib directory at: $LIB_DIR"
+                cp -r "$LIB_DIR"/* javafx-sdk/lib/ 2>/dev/null || true
+                JAVAFX_MODULE_PATH="javafx-sdk/lib"
+                JAR_COUNT=$(ls -1 javafx-sdk/lib/*.jar 2>/dev/null | wc -l | tr -d ' ')
+                echo "✅ Copied $JAR_COUNT JAR files from $LIB_DIR"
+                rm -rf javafx-sdk-temp javafx-sdk.zip 2>/dev/null || true
+              else
+                echo "⚠️ Could not find lib directory, trying Maven download as fallback..."
+                rm -rf javafx-sdk-temp javafx-sdk.zip 2>/dev/null || true
+              fi
             fi
           else
             echo "⚠️ Zip file is invalid, trying Maven..."
