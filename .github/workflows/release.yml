@@ -492,6 +492,8 @@ jobs:
             fi
           fi
           
+          # Check if we still have no JARs after trying Maven local repo
+          JAR_COUNT=$(ls -1 javafx-sdk/lib/*.jar 2>/dev/null | wc -l | tr -d ' ')
           if [ "$JAR_COUNT" -eq 0 ]; then
             echo "⚠️ No JavaFX modules found, jpackage will likely fail"
             echo "Continuing anyway to see full error message..."
