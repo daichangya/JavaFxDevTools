@@ -344,6 +344,49 @@ jobs:
         # macOS dependencies are usually pre-installed
         echo "macOS dependencies check..."
         
+    - name: Prepare JavaFX modules for jpackage
+      if: matrix.os == 'macos-latest'
+      shell: bash
+      run: |
+        echo "Preparing JavaFX modules for jpackage..."
+        
+        # Download JavaFX SDK for macOS
+        JAVAFX_VERSION="17.0.6"
+        JAVAFX_SDK_URL="https://download2.gluonhq.com/openjfx/$JAVAFX_VERSION/openjfx-${JAVAFX_VERSION}_macos-aarch64_bin-sdk.zip"
+        
+        echo "Downloading JavaFX SDK $JAVAFX_VERSION..."
+        mkdir -p javafx-sdk
+        curl -L -o javafx-sdk.zip "$JAVAFX_SDK_URL" || {
+          echo "Failed to download JavaFX SDK, trying alternative method..."
+          # Alternative: Use Maven to download JavaFX JARs
+          mvn dependency:copy -Dartifact=org.openjfx:javafx-controls:$JAVAFX_VERSION:jar:mac-aarch64 -DoutputDirectory=javafx-sdk/lib
+          mvn dependency:copy -Dartifact=org.openjfx:javafx-fxml:$JAVAFX_VERSION:jar:mac-aarch64 -DoutputDirectory=javafx-sdk/lib
+          mvn dependency:copy -Dartifact=org.openjfx:javafx-graphics:$JAVAFX_VERSION:jar:mac-aarch64 -DoutputDirectory=javafx-sdk/lib
+          mvn dependency:copy -Dartifact=org.openjfx:javafx-base:$JAVAFX_VERSION:jar:mac-aarch64 -DoutputDirectory=javafx-sdk/lib
+          mvn dependency:copy -Dartifact=org.openjfx:javafx-web:$JAVAFX_VERSION:jar:mac-aarch64 -DoutputDirectory=javafx-sdk/lib
+          mvn dependency:copy -Dartifact=org.openjfx:javafx-media:$JAVAFX_VERSION:jar:mac-aarch64 -DoutputDirectory=javafx-sdk/lib
+        }
+        
+        if [ -f javafx-sdk.zip ]; then
+          unzip -q javafx-sdk.zip -d javafx-sdk
+          JAVAFX_MODULE_PATH="javafx-sdk/javafx-sdk-$JAVAFX_VERSION/lib"
+        else
+          # Use Maven downloaded JARs
+          JAVAFX_MODULE_PATH="javafx-sdk/lib"
+        fi
+        
+        echo "JavaFX module path: $JAVAFX_MODULE_PATH"
+        echo "JAVAFX_MODULE_PATH=$JAVAFX_MODULE_PATH" >> $GITHUB_ENV
+        echo "JAVAFX_MODULES=javafx.controls,javafx.fxml,javafx.graphics,javafx.base,javafx.web,javafx.media" >> $GITHUB_ENV
+        
+        # Verify JavaFX modules
+        if [ -d "$JAVAFX_MODULE_PATH" ]; then
+          echo "JavaFX modules found:"
+          ls -lh "$JAVAFX_MODULE_PATH" | head -10
+        else
+          echo "⚠️ Warning: JavaFX module path not found, jpackage may fail"
+        fi
+        
     - name: Install dependencies (Windows)
       if: matrix.os == 'windows-latest'
       run: |
@@ -482,12 +525,22 @@ jobs:
               
               # Convert app-image to package
               if [ "$PKG_TYPE" != "app-image" ]; then
-                JPACKAGE_OUTPUT2=$(jpackage \
-                  --app-image "$APP_IMAGE_PATH" \
-                  --type "$PKG_TYPE" \
+                # Build conversion command
+                CONVERT_CMD="jpackage \
+                  --app-image \"$APP_IMAGE_PATH\" \
+                  --type \"$PKG_TYPE\" \
                   --dest release-assets/native-$PLATFORM \
-                  --app-version "$VERSION" \
-                  --verbose 2>&1)
+                  --app-version \"$VERSION\""
+                
+                # macOS specific options for conversion
+                if [ "$PLATFORM" = "macos" ]; then
+                  CONVERT_CMD="$CONVERT_CMD --mac-sign false"
+                fi
+                
+                echo "Converting app-image to $PKG_TYPE..."
+                echo "Command: $CONVERT_CMD"
+                
+                JPACKAGE_OUTPUT2=$(eval $CONVERT_CMD --verbose 2>&1)
                 PACKAGE_EXIT_CODE=$?
                 echo "$JPACKAGE_OUTPUT2"
                 
@@ -553,8 +606,16 @@ jobs:
           
           # macOS specific options
           if [ "$PLATFORM" = "macos" ]; then
-            # Add macOS specific options if needed
-            JPACKAGE_CMD="$JPACKAGE_CMD --mac-package-name \"JavaFxEditor\""
+            # Disable code signing for testing
+            JPACKAGE_CMD="$JPACKAGE_CMD --mac-package-name \"JavaFxEditor\" --mac-sign false"
+            
+            # Add JavaFX module path and modules if available
+            if [ -n "$JAVAFX_MODULE_PATH" ] && [ -d "$JAVAFX_MODULE_PATH" ]; then
+              JPACKAGE_CMD="$JPACKAGE_CMD --module-path \"$JAVAFX_MODULE_PATH\" --add-modules \"$JAVAFX_MODULES\""
+              echo "Adding JavaFX modules: $JAVAFX_MODULES"
+            else
+              echo "⚠️ Warning: JavaFX module path not set, jpackage may fail to find JavaFX modules"
+            fi
           fi
           
           echo "Executing jpackage command..."
@@ -584,12 +645,22 @@ jobs:
               
               # Convert app-image to package
               if [ "$PKG_TYPE" != "app-image" ]; then
-                JPACKAGE_OUTPUT2=$(jpackage \
-                  --app-image "$APP_IMAGE_PATH" \
-                  --type "$PKG_TYPE" \
+                # Build conversion command
+                CONVERT_CMD="jpackage \
+                  --app-image \"$APP_IMAGE_PATH\" \
+                  --type \"$PKG_TYPE\" \
                   --dest release-assets/native-$PLATFORM \
-                  --app-version "$VERSION" \
-                  --verbose 2>&1)
+                  --app-version \"$VERSION\""
+                
+                # macOS specific options for conversion
+                if [ "$PLATFORM" = "macos" ]; then
+                  CONVERT_CMD="$CONVERT_CMD --mac-sign false"
+                fi
+                
+                echo "Converting app-image to $PKG_TYPE..."
+                echo "Command: $CONVERT_CMD"
+                
+                JPACKAGE_OUTPUT2=$(eval $CONVERT_CMD --verbose 2>&1)
                 PACKAGE_EXIT_CODE=$?
                 echo "$JPACKAGE_OUTPUT2"
                 
