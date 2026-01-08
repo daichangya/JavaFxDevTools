@@ -423,20 +423,46 @@ jobs:
           
           # First create app-image, then convert to package
           echo "Step 1: Creating app-image..."
-          JPACKAGE_OUTPUT=$(jpackage \
+          
+          # Debug: List files in input directory
+          echo "Files in DevTools/target:"
+          ls -lh DevTools/target/ | head -10
+          
+          # Debug: Check JAR file
+          echo "Checking JAR file:"
+          jar tf DevTools/target/DevTools-$VERSION.jar | head -5 || echo "Failed to list JAR contents"
+          
+          # Build jpackage command
+          JPACKAGE_CMD="jpackage \
             --input DevTools/target \
             --name DevTools \
             --main-jar DevTools-$VERSION.jar \
             --main-class com.daicy.devtools.TextEditor \
             --type app-image \
             --dest release-assets/native-$PLATFORM \
-            --app-version "$VERSION" \
-            --description "DevTools - Plugin-based Text Editor" \
-            --vendor "daichangya" \
-            $LICENSE_ARG \
-            --verbose 2>&1)
+            --app-version \"$VERSION\" \
+            --description \"DevTools - Plugin-based Text Editor\" \
+            --vendor \"daichangya\""
+          
+          # Add license if available
+          if [ -n "$LICENSE_ARG" ]; then
+            JPACKAGE_CMD="$JPACKAGE_CMD $LICENSE_ARG"
+          fi
+          
+          # macOS specific options
+          if [ "$PLATFORM" = "macos" ]; then
+            # Add macOS specific options if needed
+            JPACKAGE_CMD="$JPACKAGE_CMD --mac-package-name \"DevTools\""
+          fi
+          
+          echo "Executing jpackage command..."
+          echo "Command: $JPACKAGE_CMD"
+          
+          JPACKAGE_OUTPUT=$(eval $JPACKAGE_CMD --verbose 2>&1)
           APP_IMAGE_EXIT_CODE=$?
           
+          echo "jpackage exit code: $APP_IMAGE_EXIT_CODE"
+          echo "jpackage output:"
           echo "$JPACKAGE_OUTPUT"
           
           if [ $APP_IMAGE_EXIT_CODE -eq 0 ]; then
