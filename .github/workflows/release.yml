@@ -436,35 +436,38 @@ jobs:
         JAR_COUNT=$(ls -1 javafx-sdk/lib/*.jar 2>/dev/null | wc -l | tr -d ' ')
         if [ "$JAR_COUNT" -lt 6 ]; then
           echo "Downloading JavaFX modules from Maven (fallback)..."
-        
-        MODULES=("controls" "fxml" "graphics" "base" "web" "media")
-        SUCCESS_COUNT=0
-        
-        for module in "${MODULES[@]}"; do
-          echo "Downloading javafx-$module (classifier: $MAVEN_CLASSIFIER)..."
-          if mvn dependency:copy \
-            -Dartifact=org.openjfx:javafx-$module:$JAVAFX_VERSION:jar:$MAVEN_CLASSIFIER \
-            -DoutputDirectory=javafx-sdk/lib \
-            -Dtransitive=false \
-            -q 2>&1; then
-            SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-            echo "✅ Downloaded javafx-$module"
-          else
-            echo "⚠️ Failed to download javafx-$module with $MAVEN_CLASSIFIER, trying without classifier..."
-            # Try without classifier as fallback
-            mvn dependency:copy \
-              -Dartifact=org.openjfx:javafx-$module:$JAVAFX_VERSION:jar \
+          
+          MODULES=("controls" "fxml" "graphics" "base" "web" "media")
+          SUCCESS_COUNT=0
+          
+          for module in "${MODULES[@]}"; do
+            echo "Downloading javafx-$module (classifier: $MAVEN_CLASSIFIER)..."
+            if mvn dependency:copy \
+              -Dartifact=org.openjfx:javafx-$module:$JAVAFX_VERSION:jar:$MAVEN_CLASSIFIER \
               -DoutputDirectory=javafx-sdk/lib \
               -Dtransitive=false \
-              -q 2>&1 && SUCCESS_COUNT=$((SUCCESS_COUNT + 1)) || echo "❌ Failed javafx-$module"
-          fi
-        done
+              -q 2>&1; then
+              SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+              echo "✅ Downloaded javafx-$module"
+            else
+              echo "⚠️ Failed to download javafx-$module with $MAVEN_CLASSIFIER, trying without classifier..."
+              # Try without classifier as fallback
+              mvn dependency:copy \
+                -Dartifact=org.openjfx:javafx-$module:$JAVAFX_VERSION:jar \
+                -DoutputDirectory=javafx-sdk/lib \
+                -Dtransitive=false \
+                -q 2>&1 && SUCCESS_COUNT=$((SUCCESS_COUNT + 1)) || echo "❌ Failed javafx-$module"
+            fi
+          done
+          
+          # Final check
+          JAR_COUNT=$(ls -1 javafx-sdk/lib/*.jar 2>/dev/null | wc -l | tr -d ' ')
+          echo ""
+          echo "Download summary: $SUCCESS_COUNT/${#MODULES[@]} modules downloaded, $JAR_COUNT JARs found"
+        fi
         
-        # Final check
+        # Final validation
         JAR_COUNT=$(ls -1 javafx-sdk/lib/*.jar 2>/dev/null | wc -l | tr -d ' ')
-        echo ""
-        echo "Download summary: $SUCCESS_COUNT/${#MODULES[@]} modules downloaded, $JAR_COUNT JARs found"
-        
         if [ "$JAR_COUNT" -ge 6 ]; then
           echo "✅ Successfully prepared $JAR_COUNT JavaFX JARs"
           JAVAFX_MODULE_PATH="javafx-sdk/lib"
@@ -479,7 +482,7 @@ jobs:
           if [ -d "$HOME/.m2/repository/org/openjfx" ]; then
             echo "Found Maven local repository, copying JavaFX modules..."
             find "$HOME/.m2/repository/org/openjfx" -name "javafx-*-$JAVAFX_VERSION*.jar" -type f | \
-              grep -E "(mac-aarch64|mac)" | \
+              grep -E "($MAVEN_CLASSIFIER|mac-aarch64|mac|linux)" | \
               head -6 | \
               xargs -I {} cp {} javafx-sdk/lib/ 2>/dev/null || true
             JAR_COUNT=$(ls -1 javafx-sdk/lib/*.jar 2>/dev/null | wc -l | tr -d ' ')
