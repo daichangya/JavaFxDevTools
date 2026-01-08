@@ -809,6 +809,11 @@ jobs:
                   --dest release-assets/native-$PLATFORM \
                   --app-version \"$VERSION\""
                 
+                # Add license file for installer packages (valid for deb, dmg, msi, etc.)
+                if [ -n "$LICENSE_ARG" ] && [ -f "LICENSE" ]; then
+                  CONVERT_CMD="$CONVERT_CMD $LICENSE_ARG"
+                fi
+                
                 # macOS specific options for conversion
                 if [ "$PLATFORM" = "macos" ]; then
                   CONVERT_CMD="$CONVERT_CMD --mac-sign false"
