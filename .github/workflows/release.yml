@@ -386,27 +386,63 @@ jobs:
             echo "⚠️ LICENSE file not found, skipping license file"
           fi
           
+          # First create app-image, then convert to package
+          echo "Step 1: Creating app-image..."
           JPACKAGE_OUTPUT=$(jpackage \
             --input DevTools/target \
             --name DevTools \
             --main-jar DevTools-$VERSION.jar \
             --main-class com.daicy.devtools.TextEditor \
-            --type "$PKG_TYPE" \
+            --type app-image \
             --dest release-assets/native-$PLATFORM \
             --app-version "$VERSION" \
             --description "DevTools - Plugin-based Text Editor" \
             --vendor "daichangya" \
             $LICENSE_ARG \
             --verbose 2>&1)
-          JPACKAGE_EXIT_CODE=$?
+          APP_IMAGE_EXIT_CODE=$?
           
           echo "$JPACKAGE_OUTPUT"
           
-          if [ $JPACKAGE_EXIT_CODE -eq 0 ]; then
-            echo "✅ DevTools native package created successfully"
+          if [ $APP_IMAGE_EXIT_CODE -eq 0 ]; then
+            echo "✅ DevTools app-image created successfully"
+            
+            # Check if app-image was created (macOS uses .app, Linux uses directory)
+            APP_IMAGE_PATH=""
+            if [ -d "release-assets/native-$PLATFORM/DevTools.app" ]; then
+              APP_IMAGE_PATH="release-assets/native-$PLATFORM/DevTools.app"
+            elif [ -d "release-assets/native-$PLATFORM/DevTools" ]; then
+              APP_IMAGE_PATH="release-assets/native-$PLATFORM/DevTools"
+            fi
+            
+            if [ -n "$APP_IMAGE_PATH" ]; then
+              echo "App-image found at: $APP_IMAGE_PATH"
+              echo "Converting to $PKG_TYPE..."
+              
+              # Convert app-image to package
+              if [ "$PKG_TYPE" != "app-image" ]; then
+                JPACKAGE_OUTPUT2=$(jpackage \
+                  --app-image "$APP_IMAGE_PATH" \
+                  --type "$PKG_TYPE" \
+                  --dest release-assets/native-$PLATFORM \
+                  --app-version "$VERSION" \
+                  --verbose 2>&1)
+                PACKAGE_EXIT_CODE=$?
+                echo "$JPACKAGE_OUTPUT2"
+                
+                if [ $PACKAGE_EXIT_CODE -eq 0 ]; then
+                  echo "✅ DevTools $PKG_TYPE package created successfully"
+                else
+                  echo "⚠️ Failed to convert app-image to $PKG_TYPE, but app-image is available"
+                fi
+              fi
+            else
+              echo "⚠️ App-image directory not found after creation"
+            fi
           else
-            echo "❌ DevTools native package creation failed with exit code $JPACKAGE_EXIT_CODE"
-            echo "This is expected if jpackage is not fully supported or dependencies are missing"
+            echo "❌ DevTools app-image creation failed with exit code $APP_IMAGE_EXIT_CODE"
+            echo "Full output:"
+            echo "$JPACKAGE_OUTPUT"
           fi
         else
           echo "⚠️ DevTools JAR file not found: DevTools/target/DevTools-$VERSION.jar"
@@ -426,27 +462,63 @@ jobs:
             echo "⚠️ LICENSE file not found, skipping license file"
           fi
           
+          # First create app-image, then convert to package
+          echo "Step 1: Creating app-image..."
           JPACKAGE_OUTPUT=$(jpackage \
             --input JavaFxEditor/target \
             --name JavaFxEditor \
             --main-jar JavaFxEditor-$VERSION.jar \
             --main-class com.daicy.javafxeditor.TestEditor \
-            --type "$PKG_TYPE" \
+            --type app-image \
             --dest release-assets/native-$PLATFORM \
             --app-version "$VERSION" \
             --description "JavaFxEditor - Customizable Code Editor" \
             --vendor "daichangya" \
             $LICENSE_ARG \
             --verbose 2>&1)
-          JPACKAGE_EXIT_CODE=$?
+          APP_IMAGE_EXIT_CODE=$?
           
           echo "$JPACKAGE_OUTPUT"
           
-          if [ $JPACKAGE_EXIT_CODE -eq 0 ]; then
-            echo "✅ JavaFxEditor native package created successfully"
+          if [ $APP_IMAGE_EXIT_CODE -eq 0 ]; then
+            echo "✅ JavaFxEditor app-image created successfully"
+            
+            # Check if app-image was created (macOS uses .app, Linux uses directory)
+            APP_IMAGE_PATH=""
+            if [ -d "release-assets/native-$PLATFORM/JavaFxEditor.app" ]; then
+              APP_IMAGE_PATH="release-assets/native-$PLATFORM/JavaFxEditor.app"
+            elif [ -d "release-assets/native-$PLATFORM/JavaFxEditor" ]; then
+              APP_IMAGE_PATH="release-assets/native-$PLATFORM/JavaFxEditor"
+            fi
+            
+            if [ -n "$APP_IMAGE_PATH" ]; then
+              echo "App-image found at: $APP_IMAGE_PATH"
+              echo "Converting to $PKG_TYPE..."
+              
+              # Convert app-image to package
+              if [ "$PKG_TYPE" != "app-image" ]; then
+                JPACKAGE_OUTPUT2=$(jpackage \
+                  --app-image "$APP_IMAGE_PATH" \
+                  --type "$PKG_TYPE" \
+                  --dest release-assets/native-$PLATFORM \
+                  --app-version "$VERSION" \
+                  --verbose 2>&1)
+                PACKAGE_EXIT_CODE=$?
+                echo "$JPACKAGE_OUTPUT2"
+                
+                if [ $PACKAGE_EXIT_CODE -eq 0 ]; then
+                  echo "✅ JavaFxEditor $PKG_TYPE package created successfully"
+                else
+                  echo "⚠️ Failed to convert app-image to $PKG_TYPE, but app-image is available"
+                fi
+              fi
+            else
+              echo "⚠️ App-image directory not found after creation"
+            fi
           else
-            echo "❌ JavaFxEditor native package creation failed with exit code $JPACKAGE_EXIT_CODE"
-            echo "This is expected if jpackage is not fully supported or dependencies are missing"
+            echo "❌ JavaFxEditor app-image creation failed with exit code $APP_IMAGE_EXIT_CODE"
+            echo "Full output:"
+            echo "$JPACKAGE_OUTPUT"
           fi
         else
           echo "⚠️ JavaFxEditor JAR file not found: JavaFxEditor/target/JavaFxEditor-$VERSION.jar"
