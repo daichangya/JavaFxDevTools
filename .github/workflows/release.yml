@@ -354,82 +354,38 @@ jobs:
         JAVAFX_VERSION="17.0.6"
         mkdir -p javafx-sdk/lib
         
-        # Use Maven to download JavaFX JARs (most reliable method)
-        echo "Downloading JavaFX modules from Maven..."
+        # Use Maven to download JavaFX JARs using individual commands
+        # This is more reliable than batch operations
+        echo "Downloading JavaFX modules from Maven (individual downloads)..."
         
-        # Create a temporary pom.xml for dependency resolution
-        cat > /tmp/javafx-pom.xml <<EOF
-        <?xml version="1.0" encoding="UTF-8"?>
-        <project xmlns="http://maven.apache.org/POM/4.0.0"
-                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
-                 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-          <modelVersion>4.0.0</modelVersion>
-          <groupId>temp</groupId>
-          <artifactId>javafx-downloader</artifactId>
-          <version>1.0</version>
-          <dependencies>
-            <dependency>
-              <groupId>org.openjfx</groupId>
-              <artifactId>javafx-controls</artifactId>
-              <version>$JAVAFX_VERSION</version>
-              <classifier>mac-aarch64</classifier>
-            </dependency>
-            <dependency>
-              <groupId>org.openjfx</groupId>
-              <artifactId>javafx-fxml</artifactId>
-              <version>$JAVAFX_VERSION</version>
-              <classifier>mac-aarch64</classifier>
-            </dependency>
-            <dependency>
-              <groupId>org.openjfx</groupId>
-              <artifactId>javafx-graphics</artifactId>
-              <version>$JAVAFX_VERSION</version>
-              <classifier>mac-aarch64</classifier>
-            </dependency>
-            <dependency>
-              <groupId>org.openjfx</groupId>
-              <artifactId>javafx-base</artifactId>
-              <version>$JAVAFX_VERSION</version>
-              <classifier>mac-aarch64</classifier>
-            </dependency>
-            <dependency>
-              <groupId>org.openjfx</groupId>
-              <artifactId>javafx-web</artifactId>
-              <version>$JAVAFX_VERSION</version>
-              <classifier>mac-aarch64</classifier>
-            </dependency>
-            <dependency>
-              <groupId>org.openjfx</groupId>
-              <artifactId>javafx-media</artifactId>
-              <version>$JAVAFX_VERSION</version>
-              <classifier>mac-aarch64</classifier>
-            </dependency>
-          </dependencies>
-        </project>
-        EOF
+        MODULES=("controls" "fxml" "graphics" "base" "web" "media")
+        SUCCESS_COUNT=0
         
-        # Use dependency:copy-dependencies with the temp pom
-        mvn -f /tmp/javafx-pom.xml dependency:copy-dependencies \
-          -DoutputDirectory=javafx-sdk/lib \
-          -DincludeScope=runtime \
-          -q || {
-          echo "Maven batch download failed, trying individual downloads..."
-          # Fallback to individual downloads
-          for module in controls fxml graphics base web media; do
-            echo "Downloading javafx-$module..."
+        for module in "${MODULES[@]}"; do
+          echo "Downloading javafx-$module..."
+          if mvn dependency:copy \
+            -Dartifact=org.openjfx:javafx-$module:$JAVAFX_VERSION:jar:mac-aarch64 \
+            -DoutputDirectory=javafx-sdk/lib \
+            -Dtransitive=false \
+            -q 2>&1; then
+            SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+            echo "✅ Downloaded javafx-$module"
+          else
+            echo "⚠️ Failed to download javafx-$module, trying without classifier..."
+            # Try without classifier as fallback
             mvn dependency:copy \
-              -Dartifact=org.openjfx:javafx-$module:$JAVAFX_VERSION:jar:mac-aarch64 \
+              -Dartifact=org.openjfx:javafx-$module:$JAVAFX_VERSION:jar \
               -DoutputDirectory=javafx-sdk/lib \
-              -q || echo "⚠️ Failed to download javafx-$module"
-          done
-        }
-        
-        # Clean up temp pom
-        rm -f /tmp/javafx-pom.xml 2>/dev/null || true
+              -Dtransitive=false \
+              -q 2>&1 && SUCCESS_COUNT=$((SUCCESS_COUNT + 1)) || echo "❌ Failed javafx-$module"
+          fi
+        done
         
         # Final check
         JAR_COUNT=$(ls -1 javafx-sdk/lib/*.jar 2>/dev/null | wc -l | tr -d ' ')
+        echo ""
+        echo "Download summary: $SUCCESS_COUNT/${#MODULES[@]} modules downloaded, $JAR_COUNT JARs found"
+        
         if [ "$JAR_COUNT" -ge 6 ]; then
           echo "✅ Successfully prepared $JAR_COUNT JavaFX JARs"
           JAVAFX_MODULE_PATH="javafx-sdk/lib"
@@ -439,21 +395,40 @@ jobs:
           JAVAFX_MODULE_PATH="javafx-sdk/lib"
         else
           echo "❌ Failed to download any JavaFX modules"
-          echo "jpackage will likely fail, but continuing to see full error..."
-          JAVAFX_MODULE_PATH="javafx-sdk/lib"
+          echo "Attempting to use Maven local repository..."
+          # Try to find JavaFX in Maven local repo
+          if [ -d "$HOME/.m2/repository/org/openjfx" ]; then
+            echo "Found Maven local repository, copying JavaFX modules..."
+            find "$HOME/.m2/repository/org/openjfx" -name "javafx-*-$JAVAFX_VERSION*.jar" -type f | \
+              grep -E "(mac-aarch64|mac)" | \
+              head -6 | \
+              xargs -I {} cp {} javafx-sdk/lib/ 2>/dev/null || true
+            JAR_COUNT=$(ls -1 javafx-sdk/lib/*.jar 2>/dev/null | wc -l | tr -d ' ')
+            if [ "$JAR_COUNT" -gt 0 ]; then
+              echo "✅ Copied $JAR_COUNT JARs from Maven local repository"
+              JAVAFX_MODULE_PATH="javafx-sdk/lib"
+            fi
+          fi
+          
+          if [ "$JAR_COUNT" -eq 0 ]; then
+            echo "⚠️ No JavaFX modules found, jpackage will likely fail"
+            echo "Continuing anyway to see full error message..."
+            JAVAFX_MODULE_PATH="javafx-sdk/lib"
+          fi
         fi
         
+        echo ""
         echo "JavaFX module path: $JAVAFX_MODULE_PATH"
         echo "JAVAFX_MODULE_PATH=$JAVAFX_MODULE_PATH" >> $GITHUB_ENV
         echo "JAVAFX_MODULES=javafx.controls,javafx.fxml,javafx.graphics,javafx.base,javafx.web,javafx.media" >> $GITHUB_ENV
         
         # Verify JavaFX modules
-        if [ -d "$JAVAFX_MODULE_PATH" ]; then
+        if [ -d "$JAVAFX_MODULE_PATH" ] && [ "$JAR_COUNT" -gt 0 ]; then
           echo "JavaFX modules found:"
           ls -lh "$JAVAFX_MODULE_PATH" | head -10
-          echo "Total JARs: $(ls -1 $JAVAFX_MODULE_PATH/*.jar 2>/dev/null | wc -l | tr -d ' ')"
+          echo "Total JARs: $JAR_COUNT"
         else
-          echo "⚠️ Warning: JavaFX module path not found"
+          echo "⚠️ Warning: JavaFX module path is empty or not found"
         fi
         
     - name: Install dependencies (Windows)
