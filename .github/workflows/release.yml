@@ -315,7 +315,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: jars-${{ steps.version.outputs.version }}
-        path: jars/
+        path: .
         
     - name: Install dependencies (Linux)
       if: matrix.os == 'ubuntu-latest'
@@ -335,57 +335,42 @@ jobs:
         # Windows dependencies are usually pre-installed
         echo "Windows dependencies check..."
         
-    - name: Prepare JAR files for jpackage
+    - name: Verify downloaded JAR files
       shell: bash
       run: |
         VERSION="${{ steps.version.outputs.version }}"
         
-        echo "=== Preparing JAR files for jpackage ==="
+        echo "=== Verifying downloaded JAR files ==="
         echo "Version: $VERSION"
         echo "Current directory: $(pwd)"
         
-        # List downloaded artifacts
+        # Artifacts are downloaded maintaining directory structure
+        # So files should be at: DevTools/target/DevTools-$VERSION.jar
         echo ""
-        echo "Checking downloaded artifacts:"
-        ls -lah jars/ 2>/dev/null || echo "jars/ directory does not exist"
+        echo "Checking for JAR files:"
         
-        mkdir -p DevTools/target JavaFxEditor/target
-        
-        # Copy JAR files to target directories
-        if [ -f "jars/DevTools-$VERSION.jar" ]; then
-          cp jars/DevTools-$VERSION.jar DevTools/target/
-          echo "✅ Copied DevTools-$VERSION.jar to DevTools/target/"
+        if [ -f "DevTools/target/DevTools-$VERSION.jar" ]; then
+          echo "✅ Found: DevTools/target/DevTools-$VERSION.jar"
           ls -lh DevTools/target/DevTools-$VERSION.jar
         else
-          echo "❌ JAR file not found: jars/DevTools-$VERSION.jar"
-          echo "Available files in jars/:"
-          ls -lah jars/ 2>/dev/null || echo "jars/ directory does not exist"
-        fi
-        
-        if [ -f "jars/JavaFxEditor-$VERSION.jar" ]; then
-          cp jars/JavaFxEditor-$VERSION.jar JavaFxEditor/target/
-          echo "✅ Copied JavaFxEditor-$VERSION.jar to JavaFxEditor/target/"
-          ls -lh JavaFxEditor/target/JavaFxEditor-$VERSION.jar
-        else
-          echo "❌ JAR file not found: jars/JavaFxEditor-$VERSION.jar"
-          echo "Available files in jars/:"
-          ls -lah jars/ 2>/dev/null || echo "jars/ directory does not exist"
-        fi
-        
-        # Verify files are in place
-        echo ""
-        echo "=== Verification ==="
-        if [ -f "DevTools/target/DevTools-$VERSION.jar" ]; then
-          echo "✅ DevTools JAR verified: DevTools/target/DevTools-$VERSION.jar"
-        else
-          echo "❌ DevTools JAR missing: DevTools/target/DevTools-$VERSION.jar"
+          echo "❌ Not found: DevTools/target/DevTools-$VERSION.jar"
+          echo "Searching for DevTools JAR files:"
+          find . -name "DevTools-*.jar" -type f 2>/dev/null | head -5 || echo "No DevTools JAR files found"
         fi
         
         if [ -f "JavaFxEditor/target/JavaFxEditor-$VERSION.jar" ]; then
-          echo "✅ JavaFxEditor JAR verified: JavaFxEditor/target/JavaFxEditor-$VERSION.jar"
+          echo "✅ Found: JavaFxEditor/target/JavaFxEditor-$VERSION.jar"
+          ls -lh JavaFxEditor/target/JavaFxEditor-$VERSION.jar
         else
-          echo "❌ JavaFxEditor JAR missing: JavaFxEditor/target/JavaFxEditor-$VERSION.jar"
+          echo "❌ Not found: JavaFxEditor/target/JavaFxEditor-$VERSION.jar"
+          echo "Searching for JavaFxEditor JAR files:"
+          find . -name "JavaFxEditor-*.jar" -type f 2>/dev/null | head -5 || echo "No JavaFxEditor JAR files found"
         fi
+        
+        # List all downloaded files
+        echo ""
+        echo "All files in current directory structure:"
+        find . -type f -name "*.jar" 2>/dev/null | head -10 || echo "No JAR files found"
         
     - name: Build native packages
       shell: bash
