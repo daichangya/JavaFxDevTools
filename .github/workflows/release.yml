@@ -386,7 +386,7 @@ jobs:
             echo "⚠️ LICENSE file not found, skipping license file"
           fi
           
-          if jpackage \
+          JPACKAGE_OUTPUT=$(jpackage \
             --input DevTools/target \
             --name DevTools \
             --main-jar DevTools-$VERSION.jar \
@@ -397,12 +397,16 @@ jobs:
             --description "DevTools - Plugin-based Text Editor" \
             --vendor "daichangya" \
             $LICENSE_ARG \
-            --verbose 2>&1 | tee /tmp/jpackage-devtools.log; then
+            --verbose 2>&1)
+          JPACKAGE_EXIT_CODE=$?
+          
+          echo "$JPACKAGE_OUTPUT"
+          
+          if [ $JPACKAGE_EXIT_CODE -eq 0 ]; then
             echo "✅ DevTools native package created successfully"
           else
-            echo "❌ DevTools native package creation failed"
-            echo "Error log:"
-            cat /tmp/jpackage-devtools.log || true
+            echo "❌ DevTools native package creation failed with exit code $JPACKAGE_EXIT_CODE"
+            echo "This is expected if jpackage is not fully supported or dependencies are missing"
           fi
         else
           echo "⚠️ DevTools JAR file not found: DevTools/target/DevTools-$VERSION.jar"
@@ -422,7 +426,7 @@ jobs:
             echo "⚠️ LICENSE file not found, skipping license file"
           fi
           
-          if jpackage \
+          JPACKAGE_OUTPUT=$(jpackage \
             --input JavaFxEditor/target \
             --name JavaFxEditor \
             --main-jar JavaFxEditor-$VERSION.jar \
@@ -433,39 +437,89 @@ jobs:
             --description "JavaFxEditor - Customizable Code Editor" \
             --vendor "daichangya" \
             $LICENSE_ARG \
-            --verbose 2>&1 | tee /tmp/jpackage-editor.log; then
+            --verbose 2>&1)
+          JPACKAGE_EXIT_CODE=$?
+          
+          echo "$JPACKAGE_OUTPUT"
+          
+          if [ $JPACKAGE_EXIT_CODE -eq 0 ]; then
             echo "✅ JavaFxEditor native package created successfully"
           else
-            echo "❌ JavaFxEditor native package creation failed"
-            echo "Error log:"
-            cat /tmp/jpackage-editor.log || true
+            echo "❌ JavaFxEditor native package creation failed with exit code $JPACKAGE_EXIT_CODE"
+            echo "This is expected if jpackage is not fully supported or dependencies are missing"
           fi
         else
           echo "⚠️ JavaFxEditor JAR file not found: JavaFxEditor/target/JavaFxEditor-$VERSION.jar"
         fi
         
         echo ""
-        echo "Native packages for $PLATFORM:"
-        ls -lh release-assets/native-$PLATFORM/ 2>/dev/null || echo "No native packages generated for $PLATFORM"
+        echo "=== Checking for generated packages ==="
+        echo "Platform: $PLATFORM"
+        echo "Package type: $PKG_TYPE"
+        echo "Destination: release-assets/native-$PLATFORM"
+        
+        # Check if directory exists
+        if [ -d "release-assets/native-$PLATFORM" ]; then
+          echo "Directory exists. Listing contents:"
+          ls -lah release-assets/native-$PLATFORM/ || echo "ls failed"
+          
+          # Find all files recursively
+          echo ""
+          echo "Finding all files:"
+          find release-assets/native-$PLATFORM -type f || echo "No files found"
+          
+          # Count files
+          FILE_COUNT=$(find release-assets/native-$PLATFORM -type f 2>/dev/null | wc -l || echo "0")
+          echo "Total files found: $FILE_COUNT"
+        else
+          echo "⚠️ Directory does not exist: release-assets/native-$PLATFORM"
+        fi
+        
+        # Also check if jpackage created files in a different location
+        echo ""
+        echo "Checking for files with package extensions in current directory:"
+        find . -maxdepth 3 -type f \( -name "*.deb" -o -name "*.dmg" -o -name "*.msi" -o -name "*.exe" -o -name "*.pkg" -o -name "*.AppImage" \) 2>/dev/null | head -20 || echo "No package files found"
         
     - name: List generated packages
       shell: bash
       run: |
         PLATFORM="${{ matrix.platform-name }}"
+        PKG_TYPE="${{ matrix.pkg-type }}"
         echo "=== Checking for generated packages ==="
         echo "Platform: $PLATFORM"
+        echo "Package type: $PKG_TYPE"
         echo "Directory: release-assets/native-$PLATFORM"
         
+        # Check target directory
         if [ -d "release-assets/native-$PLATFORM" ]; then
-          echo "Directory exists. Contents:"
+          echo "✅ Directory exists. Contents:"
           ls -lah release-assets/native-$PLATFORM/ || echo "ls failed"
           
           echo ""
-          echo "Finding package files:"
+          echo "Finding all files in directory:"
           find release-assets/native-$PLATFORM -type f || echo "find returned no files"
+          
+          # Check for specific package types
+          echo ""
+          echo "Looking for $PKG_TYPE files:"
+          find release-assets/native-$PLATFORM -name "*.$PKG_TYPE" -o -name "*.$PKG_TYPE.*" 2>/dev/null || echo "No $PKG_TYPE files found"
         else
-          echo "⚠️ Directory does not exist"
+          echo "⚠️ Directory does not exist: release-assets/native-$PLATFORM"
         fi
+        
+        # Check if files were created in jpackage's default location
+        echo ""
+        echo "Checking jpackage default locations:"
+        if [ "$PLATFORM" == "macos" ]; then
+          # macOS might create .app bundles
+          find . -maxdepth 3 -type d -name "*.app" 2>/dev/null | head -5 || echo "No .app bundles found"
+        fi
+        
+        # Check current working directory
+        echo ""
+        echo "Current working directory: $(pwd)"
+        echo "Files in current directory:"
+        ls -la | head -10
         
     - name: Upload native packages to Release
       uses: softprops/action-gh-release@v1
