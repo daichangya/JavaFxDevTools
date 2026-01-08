@@ -694,7 +694,7 @@ jobs:
                 
                 # macOS specific options for conversion
                 if [ "$PLATFORM" = "macos" ]; then
-                  CONVERT_CMD="$CONVERT_CMD --mac-sign false"
+                  # Note: --mac-sign is not added to disable code signing (default behavior)
                 fi
                 
                 echo "Converting app-image to $PKG_TYPE..."
@@ -765,7 +765,7 @@ jobs:
           # macOS specific options
           if [ "$PLATFORM" = "macos" ]; then
             # Disable code signing for testing
-            JPACKAGE_CMD="$JPACKAGE_CMD --mac-package-name \"JavaFxEditor\" --mac-sign false"
+            JPACKAGE_CMD="$JPACKAGE_CMD --mac-package-name \"JavaFxEditor\""
             
             # Add JavaFX module path and modules if available
             if [ -n "$JAVAFX_MODULE_PATH" ] && [ -d "$JAVAFX_MODULE_PATH" ]; then
@@ -817,7 +817,7 @@ jobs:
                 
                 # macOS specific options for conversion
                 if [ "$PLATFORM" = "macos" ]; then
-                  CONVERT_CMD="$CONVERT_CMD --mac-sign false"
+                  # Note: --mac-sign is not added to disable code signing (default behavior)
                 fi
                 
                 echo "Converting app-image to $PKG_TYPE..."
