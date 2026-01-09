@@ -1,32 +1,40 @@
 package com.daicy.devtools.plugin;
-import com.daicy.devtools.TextPlugin;
-import com.daicy.core.ExceptionHandler;
-import com.fasterxml.jackson.databind.JsonNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import javafx.scene.control.*;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.VBox;
-import org.apache.commons.lang3.StringUtils;
-import org.fxmisc.richtext.CodeArea;
-import org.fxmisc.richtext.LineNumberFactory;
-import org.fxmisc.richtext.model.StyleSpans;
 
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Collection;
 
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
+
+import org.apache.commons.lang3.StringUtils;
+import org.fxmisc.richtext.CodeArea;
+import org.fxmisc.richtext.LineNumberFactory;
+import org.fxmisc.richtext.model.StyleSpans;
+
+import com.daicy.core.ExceptionHandler;
+import com.daicy.devtools.TextPlugin;
+import com.daicy.devtools.plugin.util.JsonHighlighting;
+import com.daicy.devtools.plugin.util.JsonToBean;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+/**
+ * JSON 格式化插件
+ * 
+ * <p>提供 JSON 格式化、验证和 JavaBean 代码生成功能。
+ * 
+ * @author daicy
+ */
 public class JsonFormatPlugin implements TextPlugin {
-    private static final Logger logger = LoggerFactory.getLogger(JsonFormatPlugin.class);
-    
     private final CodeArea inputTextArea = new CodeArea();
     private final CodeArea outputTextArea = new CodeArea();
     private final VBox contentPane;
@@ -47,7 +55,6 @@ public class JsonFormatPlugin implements TextPlugin {
         inputTextArea.setParagraphGraphicFactory(LineNumberFactory.get(inputTextArea));
 
         Label outputLabel = new Label("格式化后：");
-//        outputTextArea.setPrefRowCount(10);
         outputTextArea.setPrefHeight(300);
         outputTextArea.setWrapText(true);
         outputTextArea.setEditable(false);
@@ -57,7 +64,7 @@ public class JsonFormatPlugin implements TextPlugin {
 
         Button generateJavaBeanButton = new Button("生成JavaBean");
         generateJavaBeanButton.setOnAction(event -> generateJavaBean());
-        contentPane.getStylesheets().add(getResource("json-keywords.css").toExternalForm());
+        contentPane.getStylesheets().add(getResource("css/json-keywords.css").toExternalForm());
         contentPane.getChildren().addAll(hBox, inputTextArea, outputLabel, outputTextArea, formatButton, generateJavaBeanButton);
     }
 

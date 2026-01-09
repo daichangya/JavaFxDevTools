@@ -9,7 +9,7 @@ JavaFxEditor 是一款基于 JavaFX 技术精心打造的多功能文本编辑�
 - **GroupId**: `com.daicy`
 - **ArtifactId**: `JavaFxEditor`
 - **版本**: `1.0.0-SNAPSHOT`
-- **主类**: `com.daicy.javafxeditor.TestEditor`
+- **主类**: `com.daicy.javafxeditor.JavaFxEditorApp`
 
 ## 主要特性
 
@@ -38,7 +38,7 @@ JavaFxEditor 使用策略模式实现可定制的编辑器行为：
 mvn javafx:run
 
 # 或运行主类
-java -cp target/classes com.daicy.javafxeditor.TestEditor
+java -cp target/classes com.daicy.javafxeditor.JavaFxEditorApp
 ```
 
 ### 构建

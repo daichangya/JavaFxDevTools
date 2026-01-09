@@ -1,6 +1,7 @@
 package com.daicy.devtools.plugin;
 
-import com.daicy.devtools.TextPlugin;
+import java.nio.file.Path;
+
 import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
@@ -9,13 +10,20 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.web.WebView;
+
 import org.commonmark.node.Node;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 
-import java.nio.file.Path;
+import com.daicy.devtools.TextPlugin;
 
-// Markdown编辑器插件
+/**
+ * Markdown 编辑器插件
+ * 
+ * <p>提供 Markdown 编辑和实时预览功能。
+ * 
+ * @author daicy
+ */
 public class MarkdownEditorPlugin implements TextPlugin {
     private final TextArea inputTextArea = new TextArea();
     private final WebView previewWebView = new WebView();

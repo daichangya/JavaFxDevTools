@@ -97,7 +97,7 @@ public class TextEditor extends Application {
         Scene scene = new Scene(borderPane, 800, 600);
         primaryStage.setTitle(bundle.getString("app.title"));
         primaryStage.setScene(scene);
-        primaryStage.getIcons().add(new Image("zthinker.png"));
+        primaryStage.getIcons().add(new Image("images/zthinker.png"));
         // 设置窗口默认最大化
         primaryStage.setMaximized(true);
         primaryStage.show();
@@ -191,7 +191,7 @@ public class TextEditor extends Application {
         ObservableList<Button> pluginButtons = FXCollections.observableArrayList();
         for (TextPlugin plugin : plugins) {
             Button pluginButton = new Button();;
-            Image actionImage = new Image(getClass().getClassLoader().getResourceAsStream("zthinker.png"));
+            Image actionImage = new Image(getClass().getClassLoader().getResourceAsStream("images/zthinker.png"));
             ImageView actionImageView = new ImageView(actionImage);
             actionImageView.setFitWidth(30);
             actionImageView.setFitHeight(30);

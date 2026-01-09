@@ -50,7 +50,7 @@
             <configuration>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>com.daicy.javafxeditor.TestEditor</mainClass>
+                  <mainClass>com.daicy.javafxeditor.JavaFxEditorApp</mainClass>
                 </transformer>
               </transformers>
               <filters>
@@ -78,7 +78,7 @@
             <id>default-cli</id>
             <configuration>
               <mainClass>
-                com.daicy.javafxeditor/com.daicy.javafxeditor.TestEditor
+                com.daicy.javafxeditor/com.daicy.javafxeditor.JavaFxEditorApp
               </mainClass>
               <launcher>app</launcher>
               <jlinkZipName>app</jlinkZipName>

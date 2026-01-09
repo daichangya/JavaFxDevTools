@@ -1,24 +1,5 @@
 package com.daicy.devtools.plugin;
 
-import com.daicy.devtools.TextPlugin;
-import com.daicy.core.ExceptionHandler;
-import javafx.concurrent.Task;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.StackPane;
-
-import org.apache.commons.lang3.StringUtils;
-import org.fxmisc.flowless.VirtualizedScrollPane;
-import org.fxmisc.richtext.CodeArea;
-import org.fxmisc.richtext.LineNumberFactory;
-import org.fxmisc.richtext.model.StyleSpans;
-import org.fxmisc.richtext.model.StyleSpansBuilder;
-
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -32,6 +13,33 @@ import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javafx.concurrent.Task;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
+
+import org.apache.commons.lang3.StringUtils;
+import org.fxmisc.flowless.VirtualizedScrollPane;
+import org.fxmisc.richtext.CodeArea;
+import org.fxmisc.richtext.LineNumberFactory;
+import org.fxmisc.richtext.model.StyleSpans;
+import org.fxmisc.richtext.model.StyleSpansBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.daicy.core.ExceptionHandler;
+import com.daicy.devtools.TextPlugin;
+import com.daicy.devtools.plugin.util.HostsUtil;
+
+/**
+ * Hosts 文件管理插件
+ * 
+ * <p>提供 hosts 文件的编辑和管理功能，支持语法高亮。
+ * 
+ * @author daicy
+ */
 public class HostsManagerPlugin implements TextPlugin {
     
     private static final Logger logger = LoggerFactory.getLogger(HostsManagerPlugin.class);
@@ -45,7 +53,6 @@ public class HostsManagerPlugin implements TextPlugin {
     private ExecutorService executor;
 
     private final StackPane contentPane;
-
 
     private static final Pattern PATTERN = Pattern.compile(
             "(?<KEYWORD>" + KEYWORD_PATTERN + ")"
@@ -73,7 +80,7 @@ public class HostsManagerPlugin implements TextPlugin {
         codeArea.replaceText(0, 0, HostsUtil.getHostsContent());
 
         contentPane = new StackPane(new VirtualizedScrollPane<>(codeArea));
-        contentPane.getStylesheets().add(getResource("hosts-keywords.css").toExternalForm());
+        contentPane.getStylesheets().add(getResource("css/hosts-keywords.css").toExternalForm());
     }
 
     private URL getResource(String image) {

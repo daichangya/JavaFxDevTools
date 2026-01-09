@@ -48,9 +48,9 @@ public class JavaFxEditorAppInfo implements AppInfo {
     @Override
     public InputStream getMainIcon() {
         // 从根类路径中读取图片资源
-        InputStream inputStream = getClass().getResourceAsStream("/zthinker.png");
+        InputStream inputStream = getClass().getResourceAsStream("/images/zthinker.png");
         if (inputStream == null) {
-            System.err.println("图片资源未找到: /zthinker.png");
+            System.err.println("图片资源未找到: /images/zthinker.png");
         }
         return inputStream;
     }

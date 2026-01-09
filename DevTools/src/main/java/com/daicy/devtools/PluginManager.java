@@ -1,16 +1,17 @@
 package com.daicy.devtools;
 
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 插件管理器，负责插件的加载、安装和卸载
