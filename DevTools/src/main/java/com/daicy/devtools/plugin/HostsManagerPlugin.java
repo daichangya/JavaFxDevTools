@@ -1,7 +1,10 @@
 package com.daicy.devtools.plugin;
 
 import com.daicy.devtools.TextPlugin;
+import com.daicy.core.ExceptionHandler;
 import javafx.concurrent.Task;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
@@ -30,6 +33,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class HostsManagerPlugin implements TextPlugin {
+    
+    private static final Logger logger = LoggerFactory.getLogger(HostsManagerPlugin.class);
 
     private static final String KEYWORD_PATTERN = "([1-9]|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5])(\\.(\\d|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5])){3}\\b";
     private static final String COMMENT_PATTERN = "#[^\n]*";
@@ -60,7 +65,7 @@ public class HostsManagerPlugin implements TextPlugin {
                     if(t.isSuccess()) {
                         return Optional.of(t.get());
                     } else {
-                        t.getFailure().printStackTrace();
+                        logger.error("语法高亮计算失败", t.getFailure());
                         return Optional.empty();
                     }
                 })
@@ -75,11 +80,21 @@ public class HostsManagerPlugin implements TextPlugin {
         return getClass().getClassLoader().getResource(image);
     }
 
-
-//    @Override
-//    public void stop() {
-//        executor.shutdown();
-//    }
+    @Override
+    public void destroy() {
+        if (executor != null && !executor.isShutdown()) {
+            executor.shutdown();
+            try {
+                // 等待任务完成，最多等待5秒
+                if (!executor.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
 
     private Task<StyleSpans<Collection<String>>> computeHighlightingAsync() {
         String text = codeArea.getText();
@@ -131,7 +146,8 @@ public class HostsManagerPlugin implements TextPlugin {
             String content = Files.readString(java.nio.file.Paths.get(filePath));
             setContent(content);
         } catch (IOException e) {
-            e.printStackTrace();
+            ExceptionHandler.handleException(e, "文件打开失败", "无法打开文件", 
+                    "无法读取文件: " + filePath + "\n错误: " + e.getMessage());
         }
     }
 
@@ -139,12 +155,14 @@ public class HostsManagerPlugin implements TextPlugin {
     public void save(String filePath) {
         try {
             if(StringUtils.isEmpty(filePath)){
-                Boolean ret = HostsUtil.saveHostsContent(codeArea.getText());
+                HostsUtil.saveHostsContent(codeArea.getText());
             }else{
-                Files.write(java.nio.file.Paths.get(filePath), codeArea.getText().getBytes());
+                Files.write(java.nio.file.Paths.get(filePath), 
+                        codeArea.getText().getBytes(java.nio.charset.StandardCharsets.UTF_8));
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            ExceptionHandler.handleException(e, "文件保存失败", "无法保存文件", 
+                    "无法保存文件: " + filePath + "\n错误: " + e.getMessage());
         }
     }
 

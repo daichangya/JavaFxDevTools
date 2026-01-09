@@ -141,6 +141,71 @@ devtools.bat
 javafxeditor.bat
 ```
 
+### 方式三：使用原生安装包（macOS/Windows/Linux）
+
+原生安装包包含完整的 JRE 运行时，**无需安装 JDK**。
+
+#### macOS (.dmg)
+
+1. **下载 DMG 文件**:
+   - 访问 [Releases](https://github.com/daichangya/JavaFxDevTools/releases) 页面
+   - 下载 `DevTools-{version}.dmg` 和 `JavaFxEditor-{version}.dmg`
+
+2. **安装应用**:
+   - 双击 DMG 文件
+   - 将应用拖拽到 Applications 文件夹
+
+3. **修复权限**（如果提示"已损坏，无法打开"）:
+```bash
+# 方法 1: 使用修复脚本
+curl -L -o fix-macos-permissions.sh https://raw.githubusercontent.com/daichangya/JavaFxDevTools/main/scripts/fix-macos-permissions.sh
+chmod +x fix-macos-permissions.sh
+./fix-macos-permissions.sh
+
+# 方法 2: 手动修复
+xattr -cr /Applications/DevTools.app
+xattr -cr /Applications/JavaFxEditor.app
+```
+
+4. **启动应用**:
+   - 从 Launchpad 或 Applications 文件夹启动
+   - 或使用 Spotlight 搜索应用名称
+
+#### Windows (.msi)
+
+1. **下载 MSI 文件**:
+   - 访问 [Releases](https://github.com/daichangya/JavaFxDevTools/releases) 页面
+   - 下载 `DevTools-{version}.msi` 和 `JavaFxEditor-{version}.msi`
+
+2. **安装应用**:
+   - 双击 MSI 文件
+   - 按照安装向导完成安装
+
+3. **启动应用**:
+   - 从开始菜单启动
+   - 或从安装目录运行
+
+#### Linux (.deb / .rpm)
+
+1. **下载安装包**:
+   - 访问 [Releases](https://github.com/daichangya/JavaFxDevTools/releases) 页面
+   - 下载 `.deb` (Debian/Ubuntu) 或 `.rpm` (RedHat/CentOS) 文件
+
+2. **安装应用**:
+```bash
+# Debian/Ubuntu
+sudo dpkg -i DevTools-{version}.deb
+sudo dpkg -i JavaFxEditor-{version}.deb
+
+# RedHat/CentOS
+sudo rpm -i DevTools-{version}.rpm
+sudo rpm -i JavaFxEditor-{version}.rpm
+```
+
+3. **启动应用**:
+   - 从应用程序菜单启动
+   - 或使用命令行: `devtools` / `javafxeditor`
+
 ## 验证安装
 
 ### 检查 Java 版本
@@ -184,6 +249,39 @@ rm ~/.local/bin/javafxeditor
 2. 从 PATH 中移除 `%USERPROFILE%\JavaFxDevTools\bin`（如果已添加）
 
 ## 常见问题
+
+### Q: macOS 提示 "已损坏，无法打开"
+
+**A**: 这是 macOS 的 Gatekeeper 安全机制导致的。未签名的应用会被标记为"已损坏"。
+
+**解决方法**（选择其一）：
+
+1. **使用修复脚本**（推荐）:
+```bash
+# 下载修复脚本
+curl -L -o fix-macos-permissions.sh https://raw.githubusercontent.com/daichangya/JavaFxDevTools/main/scripts/fix-macos-permissions.sh
+
+# 运行修复脚本
+chmod +x fix-macos-permissions.sh
+./fix-macos-permissions.sh
+```
+
+2. **手动移除隔离属性**:
+```bash
+# 移除应用的隔离属性
+xattr -cr /Applications/DevTools.app
+xattr -cr /Applications/JavaFxEditor.app
+```
+
+3. **通过系统设置允许运行**:
+   - 右键点击应用 → 选择"打开"
+   - 在弹出对话框中点击"打开"
+   - 或者：系统偏好设置 → 安全性与隐私 → 允许运行
+
+**注意**: 如果是从 DMG 安装的，也需要移除 DMG 的隔离属性：
+```bash
+xattr -cr /path/to/DevTools-1.0.1.dmg
+```
 
 ### Q: 提示 "Java is not installed"
 

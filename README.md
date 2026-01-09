@@ -234,7 +234,7 @@ java -jar JavaFxEditor/target/JavaFxEditor-1.0.0-SNAPSHOT.jar
 - 🐛 [问题反馈](https://github.com/daichangya/JavaFxDevTools/issues)
 - 📖 [JavaFX 官方文档](https://openjfx.io/)
 - 📚 [RichTextFX 项目](https://github.com/FXMisc/RichTextFX)
-- 🏠 [项目主页](https://zthinker.com)
+- 🏠 [项目主页](https://jsdiff.com)
 
 ## 致谢
 

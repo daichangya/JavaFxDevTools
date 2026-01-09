@@ -54,4 +54,24 @@ public interface TextPlugin {
      * @param content 要设置的内容
      */
     void setContent(String content);
+    
+    /**
+     * 初始化插件
+     * 
+     * <p>在插件被安装后调用，用于执行初始化操作。
+     * 默认实现为空，子类可以重写此方法。
+     */
+    default void initialize() {
+        // 默认实现为空
+    }
+    
+    /**
+     * 销毁插件
+     * 
+     * <p>在插件被卸载前调用，用于清理资源（如关闭线程池、释放文件句柄等）。
+     * 默认实现为空，子类应该重写此方法以正确清理资源。
+     */
+    default void destroy() {
+        // 默认实现为空
+    }
 }

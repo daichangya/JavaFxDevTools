@@ -41,7 +41,7 @@ public class JavaFxEditorAppInfo implements AppInfo {
 
     @Override
     public String getAuthorPage() {
-        return "https://zthinker.com/";
+        return "https://jsdiff.com/";
     }
 
 

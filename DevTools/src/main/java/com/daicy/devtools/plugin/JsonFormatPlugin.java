@@ -1,6 +1,9 @@
 package com.daicy.devtools.plugin;
 import com.daicy.devtools.TextPlugin;
+import com.daicy.core.ExceptionHandler;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -8,17 +11,12 @@ import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import org.apache.commons.lang3.StringUtils;
-import org.fxmisc.flowless.VirtualizedScrollPane;
 import org.fxmisc.richtext.CodeArea;
 import org.fxmisc.richtext.LineNumberFactory;
 import org.fxmisc.richtext.model.StyleSpans;
-import org.fxmisc.richtext.model.StyleSpansBuilder;
 
 import java.io.IOException;
-import java.io.StringReader;
-import java.io.StringWriter;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,6 +25,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class JsonFormatPlugin implements TextPlugin {
+    private static final Logger logger = LoggerFactory.getLogger(JsonFormatPlugin.class);
+    
     private final CodeArea inputTextArea = new CodeArea();
     private final CodeArea outputTextArea = new CodeArea();
     private final VBox contentPane;
@@ -81,16 +81,19 @@ public class JsonFormatPlugin implements TextPlugin {
             String content = Files.readString(java.nio.file.Paths.get(filePath));
             setContent(content);
         } catch (IOException e) {
-            e.printStackTrace();
+            ExceptionHandler.handleException(e, "文件打开失败", "无法打开文件", 
+                    "无法读取文件: " + filePath + "\n错误: " + e.getMessage());
         }
     }
 
     @Override
     public void save(String filePath) {
         try {
-            java.nio.file.Files.write(java.nio.file.Paths.get(filePath), outputTextArea.getText().getBytes());
+            java.nio.file.Files.write(java.nio.file.Paths.get(filePath), 
+                    outputTextArea.getText().getBytes(java.nio.charset.StandardCharsets.UTF_8));
         } catch (IOException e) {
-            e.printStackTrace();
+            ExceptionHandler.handleException(e, "文件保存失败", "无法保存文件", 
+                    "无法保存文件: " + filePath + "\n错误: " + e.getMessage());
         }
     }
 
@@ -113,8 +116,8 @@ public class JsonFormatPlugin implements TextPlugin {
             tempJson = tempJson.replaceAll("\",\n\n","\",\n");
             setContent(tempJson);
             if(checkBox.isSelected()){
-                tempJson = StringUtils.replaceAll(jsonText,"\\\\\"", "\"");
-                tempJson = StringUtils.replaceAll(tempJson, "\\\\n", "");
+                tempJson = jsonText.replace("\\\"", "\"");
+                tempJson = tempJson.replace("\\n", "");
             }
 //            JsonElement jsonElement = gson.fromJson(tempJson, JsonElement.class);
 //            String formattedJson = gson.toJson(jsonElement);

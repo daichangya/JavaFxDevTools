@@ -1,20 +1,18 @@
 package com.daicy.javafxeditor;
 
+import com.daicy.core.ExceptionHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
+import javafx.scene.control.Alert;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.fxmisc.richtext.CodeArea;
-//import info.gianlucacosta.helios.fx.workspace.Workspace;
-//import scalafx.stage.FileChooser;
-//import scalafx.scene.control.TextArea;
-//import scalafx.scene.input.KeyCodeCombination;
-//import scalafx.scene.input.KeyCombination.ModifierValue;
-//import scalafx.scene.input.KeyEvent;
-//import scalafx.scene.input.KeyCode;
 
 /**
  * Workspace 的具体实现，用于 JavaFX 编辑器
@@ -24,15 +22,13 @@ import org.fxmisc.richtext.CodeArea;
  * @author daicy
  */
 public class JavaFxWorkspace extends Workspace {
+    
+    private static final Logger logger = LoggerFactory.getLogger(JavaFxWorkspace.class);
 
-    private final Stage stage;
-    private final FileChooser documentFileChooser;
     private final CodeArea codeEditor;
 
     public JavaFxWorkspace(Stage stage, FileChooser documentFileChooser, CodeArea codeEditor) {
         super(stage, documentFileChooser);
-        this.stage = stage;
-        this.documentFileChooser = documentFileChooser;
         this.codeEditor = codeEditor;
     }
 
@@ -48,14 +44,15 @@ public class JavaFxWorkspace extends Workspace {
     protected boolean doOpen(File sourceFile) {
         try {
             String fileContent = new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
-//            codeEditor.setText(fileContent);
             codeEditor.clear();
             codeEditor.replaceText(0, 0, fileContent);
             codeEditor.getUndoManager().forgetHistory();
             codeEditor.requestFocus();
             return true;
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("打开文件失败: {}", sourceFile.getAbsolutePath(), e);
+            ExceptionHandler.handleException(e, "文件打开失败", "无法打开文件", 
+                    "无法读取文件: " + sourceFile.getAbsolutePath() + "\n错误: " + e.getMessage());
             return false;
         }
     }
@@ -66,7 +63,9 @@ public class JavaFxWorkspace extends Workspace {
             Files.write(targetFile.toPath(), codeEditor.getText().getBytes(StandardCharsets.UTF_8));
             return true;
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("保存文件失败: {}", targetFile.getAbsolutePath(), e);
+            ExceptionHandler.handleException(e, "文件保存失败", "无法保存文件", 
+                    "无法保存文件: " + targetFile.getAbsolutePath() + "\n错误: " + e.getMessage());
             return false;
         }
     }

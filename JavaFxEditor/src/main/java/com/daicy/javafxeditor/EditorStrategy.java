@@ -64,7 +64,7 @@ public class EditorStrategy implements AppStrategy {
 
     @Override
     public void showOnlineReference() {
-        DesktopUtils.openBrowser( "https://zthinker/",null);
+        DesktopUtils.openBrowser( "https://jsdiff.com/",null);
     }
 
     @Override

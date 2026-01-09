@@ -1,18 +1,37 @@
 package com.daicy.devtools;
 
-import atlantafx.base.theme.PrimerDark;
-import atlantafx.base.theme.PrimerLight;
+import java.io.File;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.ResourceBundle;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.daicy.core.ExceptionHandler;
+
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
-import javafx.event.ActionEvent;
-import javafx.event.Event;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
-import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
@@ -28,13 +47,6 @@ import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-import java.io.File;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.ResourceBundle;
-import java.util.concurrent.atomic.AtomicReference;
-
 /**
  * DevTools 主应用程序类
  * 
@@ -44,6 +56,8 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author daicy
  */
 public class TextEditor extends Application {
+    
+    private static final Logger logger = LoggerFactory.getLogger(TextEditor.class);
 
     private final TabPane tabPane = new TabPane();
     private final MenuBar menuBar = new MenuBar();
@@ -51,6 +65,8 @@ public class TextEditor extends Application {
     private FlowPane sideButtonsPane;
     private final ObservableMap<String, String> recentFilesMap = FXCollections.observableHashMap();
     private PluginManager pluginManager = new PluginManager();
+    // 存储标签页与插件实例的映射关系，确保每个标签页有独立的插件实例
+    private final Map<Tab, TextPlugin> tabPluginMap = new HashMap<>();
 
     public static void main(String[] args) {
         launch(args);
@@ -181,12 +197,6 @@ public class TextEditor extends Application {
             actionImageView.setFitHeight(30);
             pluginButton.setGraphic(actionImageView);
             pluginButton.setMnemonicParsing(false);
-            pluginButton.setOnAction(event -> {
-                selectedPlugin = plugin;
-                updatePluginButtonStyle(pluginButtons, pluginButton);
-                // 点击插件按钮时，创建新标签并加载插件界面
-                createPluginTab();
-            });
             Tooltip tooltip = new Tooltip(plugin.getClass().getSimpleName());
             pluginButton.setTooltip(tooltip);
             pluginButton.setOnAction(event -> {
@@ -203,16 +213,38 @@ public class TextEditor extends Application {
     }
 
     private void createPluginTab() {
-        if (selectedPlugin!= null) {
-            if(null != selectedPlugin.getDefaultPath()){
+        if (selectedPlugin != null) {
+            if (null != selectedPlugin.getDefaultPath()) {
                 openByFile(selectedPlugin.getDefaultPath().toFile());
-            }else {
-                Tab tab = new Tab(selectedPlugin.getClass().getSimpleName());
-                tab.setContent(selectedPlugin.getContentPane());
-                tabPane.getTabs().add(tab);
-                tabPane.getSelectionModel().select(tab);
+            } else {
+                // 为每个标签页创建新的插件实例，避免共享 contentPane
+                Class<? extends TextPlugin> pluginClass = pluginManager.getPluginClass(selectedPlugin);
+                TextPlugin newPluginInstance = pluginManager.createNewPluginInstance(pluginClass);
+                
+                if (newPluginInstance != null) {
+                    Tab tab = new Tab(selectedPlugin.getClass().getSimpleName());
+                    tab.setContent(newPluginInstance.getContentPane());
+                    // 存储标签页与插件实例的映射
+                    tabPluginMap.put(tab, newPluginInstance);
+                    // 添加标签页关闭事件处理，清理插件实例
+                    tab.setOnClosed(event -> {
+                        TextPlugin plugin = tabPluginMap.remove(tab);
+                        if (plugin != null) {
+                            plugin.destroy();
+                        }
+                        recentFilesMap.remove(tab.getText());
+                    });
+                    tabPane.getTabs().add(tab);
+                    tabPane.getSelectionModel().select(tab);
+                } else {
+                    ExceptionHandler.handleException(
+                        new RuntimeException("无法创建插件实例"),
+                        "创建标签页失败",
+                        "无法创建新的插件实例",
+                        "插件类: " + selectedPlugin.getClass().getName()
+                    );
+                }
             }
-
         }
     }
 
@@ -245,7 +277,7 @@ public class TextEditor extends Application {
     webEngine.setJavaScriptEnabled(true);
 
         // 使用WebEngine加载百度首页
-    webEngine.load("https://zthinker.com");
+    webEngine.load("https://jsdiff.com");
     // 创建一个垂直布局容器VBox，将WebView添加进去
     VBox vbox = new VBox(webView);
     return vbox;
@@ -271,28 +303,58 @@ public class TextEditor extends Application {
     }
 
     private void openByFile(File selectedFile) {
+        if (selectedPlugin == null || selectedFile == null) {
+            return;
+        }
         try {
-            selectedPlugin.open(selectedFile.getAbsolutePath());
-            Tab tab = new Tab(selectedFile.getName());
-            tab.setId(selectedFile.getName());
-            tab.setContent(selectedPlugin.getContentPane());
-            tabPane.getTabs().add(tab);
-            tabPane.getSelectionModel().select(tab);
-            recentFilesMap.put(tab.getText(), selectedFile.getAbsolutePath());
+            // 为每个文件创建新的插件实例，避免共享 contentPane
+            Class<? extends TextPlugin> pluginClass = pluginManager.getPluginClass(selectedPlugin);
+            TextPlugin newPluginInstance = pluginManager.createNewPluginInstance(pluginClass);
+            
+            if (newPluginInstance != null) {
+                newPluginInstance.open(selectedFile.getAbsolutePath());
+                Tab tab = new Tab(selectedFile.getName());
+                tab.setId(selectedFile.getName());
+                tab.setContent(newPluginInstance.getContentPane());
+                // 存储标签页与插件实例的映射
+                tabPluginMap.put(tab, newPluginInstance);
+                // 添加标签页关闭事件处理，清理插件实例
+                tab.setOnClosed(event -> {
+                    TextPlugin plugin = tabPluginMap.remove(tab);
+                    if (plugin != null) {
+                        plugin.destroy();
+                    }
+                    recentFilesMap.remove(tab.getText());
+                });
+                tabPane.getTabs().add(tab);
+                tabPane.getSelectionModel().select(tab);
+                recentFilesMap.put(tab.getText(), selectedFile.getAbsolutePath());
+            } else {
+                ExceptionHandler.handleException(
+                    new RuntimeException("无法创建插件实例"),
+                    "文件打开失败",
+                    "无法创建新的插件实例",
+                    "插件类: " + selectedPlugin.getClass().getName()
+                );
+            }
         } catch (Exception e) {
-            e.printStackTrace();
+            ExceptionHandler.handleException(e, "文件打开失败", "无法打开文件", 
+                    "无法打开文件: " + selectedFile.getAbsolutePath() + "\n错误: " + e.getMessage());
         }
     }
 
     private void saveCurrentFile() {
         Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
-        if (selectedTab!= null) {
+        if (selectedTab != null) {
             String filePath = recentFilesMap.get(selectedTab.getText());
-            if (filePath!= null && selectedPlugin!= null) {
+            // 从映射中获取当前标签页对应的插件实例
+            TextPlugin plugin = tabPluginMap.get(selectedTab);
+            if (filePath != null && plugin != null) {
                 try {
-                    selectedPlugin.save(filePath);
+                    plugin.save(filePath);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    ExceptionHandler.handleException(e, "文件保存失败", "无法保存文件", 
+                            "无法保存文件: " + filePath + "\n错误: " + e.getMessage());
                 }
             } else {
                 saveCurrentFileAs();
@@ -302,26 +364,41 @@ public class TextEditor extends Application {
 
     private void saveCurrentFileAs() {
         Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
-        if (selectedTab!= null) {
-            FileChooser fileChooser = new FileChooser();
-            File selectedFile = fileChooser.showSaveDialog(null);
-            if (selectedFile!= null && selectedPlugin!= null) {
-                try {
-                    selectedPlugin.save(selectedFile.getAbsolutePath());
-                    recentFilesMap.put(selectedTab.getText(), selectedFile.getAbsolutePath());
-                    selectedTab.setText(selectedFile.getName());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
+        if (selectedTab == null) {
+            return;
+        }
+        // 从映射中获取当前标签页对应的插件实例
+        TextPlugin plugin = tabPluginMap.get(selectedTab);
+        if (plugin == null) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("提示");
+            alert.setHeaderText("无法保存");
+            alert.setContentText("当前标签页没有关联的插件实例。");
+            alert.showAndWait();
+            return;
+        }
+        FileChooser fileChooser = new FileChooser();
+        File selectedFile = fileChooser.showSaveDialog(null);
+        if (selectedFile == null) {
+            return;
+        }
+        try {
+            plugin.save(selectedFile.getAbsolutePath());
+            recentFilesMap.put(selectedTab.getText(), selectedFile.getAbsolutePath());
+            selectedTab.setText(selectedFile.getName());
+        } catch (Exception e) {
+            ExceptionHandler.handleException(e, "文件保存失败", "无法保存文件", 
+                    "无法保存文件: " + selectedFile.getAbsolutePath() + "\n错误: " + e.getMessage());
         }
     }
 
     private void saveTextToFile(File file, String text) {
         try {
-            java.nio.file.Files.write(java.nio.file.Paths.get(file.getAbsolutePath()), text.getBytes());
+            java.nio.file.Files.write(java.nio.file.Paths.get(file.getAbsolutePath()), 
+                    text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         } catch (java.io.IOException e) {
-            e.printStackTrace();
+            ExceptionHandler.handleException(e, "文件保存失败", "无法保存文件", 
+                    "无法保存文件: " + file.getAbsolutePath() + "\n错误: " + e.getMessage());
         }
     }
 
@@ -369,7 +446,8 @@ public class TextEditor extends Application {
             if (selectedIndex.get() != null && selectedIndex.get() >= 0 && selectedIndex.get() < pluginListItems.size()) {
                 String selectedPluginClassName = pluginListItems.get(selectedIndex.get()).split(" - ")[0];
                 try {
-                    Class<?> pluginClass = Class.forName("com.daicy.javafxdemo.editor." + selectedPluginClassName);
+                    // 使用完整类名，不再硬编码包名
+                    Class<?> pluginClass = Class.forName(selectedPluginClassName);
                     if (TextPlugin.class.isAssignableFrom(pluginClass)) {
                         if (!pluginManager.isPluginInstalled((Class<? extends TextPlugin>) pluginClass)) {
                             TextPlugin plugin = (TextPlugin) pluginClass.getDeclaredConstructor().newInstance();
@@ -413,7 +491,8 @@ public class TextEditor extends Application {
             if (selectedIndex.get() != null && selectedIndex.get() >= 0 && selectedIndex.get() < pluginListItems.size()) {
                 String selectedPluginClassName = pluginListItems.get(selectedIndex.get()).split(" - ")[0];
                 try {
-                    Class<?> pluginClass = Class.forName("com.daicy.javafxdemo.editor." + selectedPluginClassName);
+                    // 使用完整类名，不再硬编码包名
+                    Class<?> pluginClass = Class.forName(selectedPluginClassName);
                     if (TextPlugin.class.isAssignableFrom(pluginClass)) {
                         if (pluginManager.isPluginInstalled((Class<? extends TextPlugin>) pluginClass)) {
                             for (TextPlugin plugin : pluginManager.getPlugins()) {
